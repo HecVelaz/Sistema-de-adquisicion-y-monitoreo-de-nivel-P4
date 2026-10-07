@@ -1,5 +1,5 @@
 idf_component_register(
     SRCS "main.c"
     INCLUDE_DIRS "."
-    REQUIRES rtc dtu sdcard
+    REQUIRES rtc dtu sdcard led_blink sensor
 )
