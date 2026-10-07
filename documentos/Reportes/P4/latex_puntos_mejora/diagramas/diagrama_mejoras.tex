@@ -1,0 +1,38 @@
+% Diagrama: seis areas a mejorar; la validacion es la mas debil
+\newcommand{\tarjeta}[6]{%
+    % #1 estilo, #2 area, #3 puntaje, #4 faltaba, #5 accion 1, #6 accion 2
+    \begin{minipage}[t][2.05cm][t]{7.1cm}
+        \textbf{#2}\hfill#3\\[2pt]
+        {\footnotesize\color{gray!60!black} Faltaba: #4}\\[3pt]
+        {\footnotesize\textbullet\ #5\\[1pt]\textbullet\ #6}
+    \end{minipage}%
+}
+\begin{tikzpicture}[
+    card/.style={draw=gray!60, thick, rounded corners=4pt, inner sep=7pt, anchor=north west},
+    destacada/.style={card, draw=radar, very thick, fill=radar!10}
+]
+    \node[destacada] at (0,0) {\tarjeta{}{Validación y seguridad}{\textbf{2,5/5}}
+        {probar pérdida de datos y exactitud}
+        {Cortes de red y energía: enviados vs.\ recibidos}
+        {Calibrar el radar en banco a 5 distancias}};
+    \node[card] at (7.75,0) {\tarjeta{}{Electrónica y firmware}{4/5}
+        {consumo, autonomía y SD ante cortes}
+        {Medir consumo y calcular autonomía (UPS)}
+        {Trama con ID, hora UTC y estado; sin $-1$}};
+    \node[card] at (0,-2.75) {\tarjeta{}{Mecánica: montaje del sensor}{3,5/5}
+        {definir el montaje del sensor}
+        {Montaje del radar con su kit de soporte}
+        {Antena nivelada y haz de 14° sin obstáculos}};
+    \node[card] at (7.75,-2.75) {\tarjeta{}{Interfaz}{4/5}
+        {aviso de dato viejo o inválido}
+        {Mostrar antigüedad del dato y estado del sensor}
+        {Alarma si dejan de llegar datos}};
+    \node[card] at (0,-5.5) {\tarjeta{}{Objetivos y metodología}{3/5}
+        {15 objetivos que eran actividades}
+        {5 objetivos medibles, uno por área}
+        {Fases: requisitos, sensor, ensayos en laboratorio}};
+    \node[card] at (7.75,-5.5) {\tarjeta{}{Documentación y bibliografía}{3,5/5}
+        {ficha del sensor, costos, línea base}
+        {Citar fabricante; comparar 3 tipos de sensor}
+        {Costos completos y datos de 9 meses de uso}};
+\end{tikzpicture}

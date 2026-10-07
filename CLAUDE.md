@@ -4,7 +4,7 @@ Contexto para Claude Code en este repositorio. Idioma de trabajo: **español** (
 
 ## Qué es el proyecto
 
-Estación de adquisición y monitoreo de nivel de agua del **arroyo Mburicaó** (Asunción, Paraguay), instalada en el Colegio San Ignacio de Loyola. Proyecto académico de Ingeniería Mecatrónica, FIUNA, grupo 10: Héctor Velázquez, Mathias Aguilar, Mauricio Tullo.
+Estación de adquisición y monitoreo de nivel de agua del **arroyo Mburicaó** (Asunción, Paraguay), instalada en el Colegio San Ignacio de Loyola. Proyecto académico de Ingeniería Mecatrónica, FIUNA (en P3 eran el grupo 10; en P4 no usar ese número): Héctor Velázquez, Mathias Aguilar, Mauricio Tullo.
 
 - **Proyecto 3 (2026-1C)**: sólo software/electrónica. PCB propia + firmware. Terminado (informes `documentos/Reportes/1f_*`, `2p_*`, `P3_final.pptx`).
 - **Proyecto 4 (actual, 2026-2C)**: suma **diseño mecánico** (gabinete IP65, soporte de sensor en acero) e **interfaz** (Grafana → web en GitHub Pages "MburicaoCastAI", repo aparte). Primera entrega: `documentos/Reportes/Aguilar_Tullo_Velazquez_P4_20_09_26.pdf` (profesores: Federico Gaona, Esteban Fretes). La sección mecánica todavía tiene apartados incompletos.
