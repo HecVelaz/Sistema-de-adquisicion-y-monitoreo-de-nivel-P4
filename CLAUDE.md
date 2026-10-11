@@ -38,6 +38,7 @@ Estación de adquisición y monitoreo de nivel de agua del **arroyo Mburicaó** 
 
 - Entregable: `documentos/Reportes/P4/Respuesta_evaluacion_1P_P4.pdf`; fuente LaTeX en `documentos/Reportes/P4/latex_respuesta_evaluacion/` (mismo flujo de compilación que el informe de abajo; zip `../latex_respuesta_evaluacion_overleaf.zip`).
 - Cada una de las 10 debilidades de la planilla (PDF 1) se marca como REALIZADO / 2.º PARCIAL / FUERA DE ALCANCE. Decisiones nuevas: trama `d=<epoch>,<id>,<distancia>,<velocidad>,<estado>` (servidor modificable); RTC +3 h se mantiene (Paraguay UTC−3 fijo) y se documenta; disponibilidad ≥ 95 % en 7 días; Mini UPS Marsriva KP1 Ultra (16 000 mAh, 30 W); banco con un balde (haz de 14° → con balde de 30 cm, hasta ~1 m); pruebas solo en laboratorio; plan de datos del módem lo paga la Facultad; los profesores de hidrología tienen otros sistemas de nivel para comparar.
+- El radar llega entre la 1.ª y la 2.ª semana de noviembre de 2026: cortes, disponibilidad (7 días) y autonomía se ensayan antes con el sensor ultrasónico de P3; con el radar quedan su driver RS485, el montaje en banco y la exactitud.
 
 ### Informe de puntos de mejora
 

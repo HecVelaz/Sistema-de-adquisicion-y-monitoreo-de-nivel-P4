@@ -1,4 +1,6 @@
-% Cronograma hasta el segundo parcial (16/11/2026), por semanas
+% Cronograma hasta el segundo parcial (16/11/2026), por semanas.
+% El radar llega entre la primera y la segunda semana de noviembre: las pruebas
+% que no dependen del sensor se hacen antes con el sensor de P3.
 \begin{ganttchart}[
     hgrid, vgrid,
     x unit=2.5cm, y unit chart=0.6cm, y unit title=0.6cm,
@@ -16,12 +18,14 @@
     \gantttitle{9--15 nov}{1} \\
     \ganttbar{Manual del radar, comparación, BOM}{1}{1} \\
     \ganttbar{Disponibilidad de los datos de P3}{1}{1} \\
-    \ganttbar{Firmware radar + trama + SD}{2}{3} \\
+    \ganttbar{Firmware: trama con id y SD segura}{2}{2} \\
     \ganttbar{Servidor (trama nueva)}{2}{2} \\
     \ganttbar{Web propia}{2}{4} \\
-    \ganttbar{Montaje en banco}{3}{3} \\
-    \ganttbar{Exactitud y consumo}{3}{3} \\
-    \ganttbar{Cortes, autonomía, 7 días}{4}{4} \\
+    \ganttbar{Cortes y consumo (sensor de P3)}{3}{3} \\
+    \ganttbar{Disponibilidad 7 días y autonomía}{3}{4} \\
+    \ganttbar[bar/.append style={fill=gray!30, draw=gray}]{Llegada del radar (estimada)}{4}{5} \\
+    \ganttbar{Firmware del radar y montaje en banco}{4}{5} \\
+    \ganttbar{Exactitud y consumo del radar}{5}{5} \\
     \ganttbar{Informe del 2.\textsuperscript{o} parcial}{5}{5} \\
     \ganttmilestone{Entrega: 16/11}{5}
 \end{ganttchart}
