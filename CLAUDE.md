@@ -7,7 +7,7 @@ Contexto para Claude Code en este repositorio. Idioma de trabajo: **español** (
 Estación de adquisición y monitoreo de nivel de agua del **arroyo Mburicaó** (Asunción, Paraguay), instalada en el Colegio San Ignacio de Loyola. Proyecto académico de Ingeniería Mecatrónica, FIUNA (en P3 eran el grupo 10; en P4 no usar ese número): Héctor Velázquez, Mathias Aguilar, Mauricio Tullo.
 
 - **Proyecto 3 (2026-1C)**: sólo software/electrónica. PCB propia + firmware. Terminado (informes `documentos/Reportes/1f_*`, `2p_*`, `P3_final.pptx`).
-- **Proyecto 4 (actual, 2026-2C)**: suma **mecánica** e **interfaz** (Grafana → web en GitHub Pages "MburicaoCastAI", repo aparte). Profesores: Prof. Ing. Federico Gaona, MSc. y Prof. Ing. Esteban Fretes. Ver la sección "Estado de Proyecto 4".
+- **Proyecto 4 (actual, 2026-2C)**: suma **mecánica** e **interfaz**: una **web propia** del equipo para mostrar los datos (se prueba con la BD histórica de P3 y luego con los datos del radar). La web "MburicaoCastAI" es del grupo de investigación y el modelo de predicción no cuenta para este proyecto académico: ambos solo se citan. Profesores: Prof. Ing. Federico Gaona, MSc. y Prof. Ing. Esteban Fretes. Ver la sección "Estado de Proyecto 4".
 - Repos relacionados (no están aquí): `HecVelaz/Proyecto-Mburica-` (repo central, IA, docs), `HecVelaz/Prediccion-de-nivel-de-rios`.
 
 ## Estado de Proyecto 4
@@ -33,6 +33,11 @@ Estación de adquisición y monitoreo de nivel de agua del **arroyo Mburicaó** 
 - **Fuera de alcance:** montaje en el arroyo (depende del Depto. de Mecánica y Energía y del grupo de investigación Mburicaó → se demuestra en un **banco de laboratorio** que simula la instalación), medir caudal, calibrar en todo el rango 0,1–40 m, usuarios/permisos en la web, validar la predicción con IA (es del proyecto de investigación), panel solar. No mencionar certificación IP65.
 - Pruebas de P3 (videos de sensor, SD, RTC, módem, sistema integrado, Store and Forward; ~9 meses de datos en Grafana) se usan como línea de base; lo que falta es cuantificar: error en mm, perdidos/duplicados en ≥ 10 cortes, tiempo de recuperación, % de disponibilidad, consumo y autonomía.
 - Objetivos reformulados (5): Electrónica (integración + consumo/autonomía), Firmware (Store and Forward con ID, 0 perdidos/duplicados en ≥ 10 cortes), Montaje del sensor (banco de laboratorio, antena nivelada), Interfaz (históricos, antigüedad del dato, estado del sensor, alarma), Validación (error ≤ ±10 mm vs cinta métrica en banco). Los umbrales son propuestas del equipo.
+
+### Respuesta a la evaluación detallada (entrega del 2.º parcial: 16/11/2026)
+
+- Entregable: `documentos/Reportes/P4/Respuesta_evaluacion_1P_P4.pdf`; fuente LaTeX en `documentos/Reportes/P4/latex_respuesta_evaluacion/` (mismo flujo de compilación que el informe de abajo; zip `../latex_respuesta_evaluacion_overleaf.zip`).
+- Cada una de las 10 debilidades de la planilla (PDF 1) se marca como REALIZADO / 2.º PARCIAL / FUERA DE ALCANCE. Decisiones nuevas: trama `d=<epoch>,<id>,<distancia>,<velocidad>,<estado>` (servidor modificable); RTC +3 h se mantiene (Paraguay UTC−3 fijo) y se documenta; disponibilidad ≥ 95 % en 7 días; Mini UPS Marsriva KP1 Ultra (16 000 mAh, 30 W); banco con un balde (haz de 14° → con balde de 30 cm, hasta ~1 m); pruebas solo en laboratorio; plan de datos del módem lo paga la Facultad; los profesores de hidrología tienen otros sistemas de nivel para comparar.
 
 ### Informe de puntos de mejora
 

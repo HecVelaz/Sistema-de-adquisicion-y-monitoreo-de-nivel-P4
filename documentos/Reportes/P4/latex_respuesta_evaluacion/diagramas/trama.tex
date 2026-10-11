@@ -1,0 +1,25 @@
+% Trama actual (P3) frente a la trama propuesta para el 2.o parcial
+\begin{tikzpicture}[
+    campo/.style={draw=gray!70, fill=white, minimum height=0.75cm, inner sep=4pt, font=\small\ttfamily},
+    nuevo/.style={campo, draw=radar, fill=radar!10},
+    nota/.style={font=\footnotesize, text=gray!60!black, align=center}
+]
+    % Trama actual
+    \node[anchor=west, font=\small\bfseries] at (0,0.9) {Actual (P3)};
+    \node[campo, anchor=west] (a1) at (0,0) {d=};
+    \node[campo, right=0pt of a1] (a2) {epoch};
+    \node[campo, right=0pt of a2, draw=red!70, fill=red!8] (a3) {valor};
+    \node[nota, below=3pt of a3] {si el sensor falla\\se envía $-1$};
+
+    % Trama nueva
+    \node[anchor=west, font=\small\bfseries] at (0,-2.0) {Propuesta (2.\textsuperscript{o} parcial)};
+    \node[campo, anchor=west] (b1) at (0,-2.9) {d=};
+    \node[campo, right=0pt of b1] (b2) {epoch UTC};
+    \node[nuevo, right=0pt of b2] (b3) {id};
+    \node[campo, right=0pt of b3] (b4) {distancia};
+    \node[nuevo, right=0pt of b4] (b5) {velocidad};
+    \node[nuevo, right=0pt of b5] (b6) {estado};
+    \node[nota, below=3pt of b3] {secuencial:\\detecta perdidos\\y duplicados};
+    \node[nota, below=3pt of b5] {dato nuevo\\del radar};
+    \node[nota, right=6pt of b6] {OK / FALLA\\(separado\\del dato)};
+\end{tikzpicture}

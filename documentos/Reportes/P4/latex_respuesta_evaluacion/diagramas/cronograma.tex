@@ -1,0 +1,27 @@
+% Cronograma hasta el segundo parcial (16/11/2026), por semanas
+\begin{ganttchart}[
+    hgrid, vgrid,
+    x unit=2.5cm, y unit chart=0.6cm, y unit title=0.6cm,
+    title label font=\footnotesize\bfseries,
+    bar label font=\footnotesize,
+    milestone label font=\footnotesize\bfseries,
+    bar/.append style={fill=radar!60, draw=radar},
+    milestone/.append style={fill=agua, draw=agua},
+    group/.append style={fill=gray!60},
+]{1}{5}
+    \gantttitle{12--18 oct}{1}
+    \gantttitle{19--25 oct}{1}
+    \gantttitle{26 oct--1 nov}{1}
+    \gantttitle{2--8 nov}{1}
+    \gantttitle{9--15 nov}{1} \\
+    \ganttbar{Manual del radar, comparación, BOM}{1}{1} \\
+    \ganttbar{Disponibilidad de los datos de P3}{1}{1} \\
+    \ganttbar{Firmware radar + trama + SD}{2}{3} \\
+    \ganttbar{Servidor (trama nueva)}{2}{2} \\
+    \ganttbar{Web propia}{2}{4} \\
+    \ganttbar{Montaje en banco}{3}{3} \\
+    \ganttbar{Exactitud y consumo}{3}{3} \\
+    \ganttbar{Cortes, autonomía, 7 días}{4}{4} \\
+    \ganttbar{Informe del 2.\textsuperscript{o} parcial}{5}{5} \\
+    \ganttmilestone{Entrega: 16/11}{5}
+\end{ganttchart}
