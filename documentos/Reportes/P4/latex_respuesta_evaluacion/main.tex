@@ -308,6 +308,38 @@ y colas requieren tolerancia a corte.
     a confirmar midiendo (der.).}
 \end{figure}
 
+\needspace{14\baselineskip}
+\textbf{Peso de cada dato y capacidad de la SD.} Cada lectura se guarda como
+una línea de texto (CSV). Con una lectura cada 2 min se generan
+\textbf{720 lecturas por día}.
+
+\begin{table}[H]
+    \centering
+    \caption{Tamaño de cada lectura y lecturas que entran en la SD.}
+    \begin{tabular}{lcc}
+        \toprule
+                               & \textbf{Actual (P3)} & \textbf{Nueva (con id)} \\
+        \midrule
+        Línea guardada         & \footnotesize\texttt{1780000000,1.234}
+                               & \footnotesize\texttt{1780000000,123456,1.234,0.350,0} \\
+        Tamaño por lectura     & 17 B (136 bits) & 32 B (256 bits) \\
+        Por día (720 lecturas) & 12 kB  & 23 kB \\
+        Por año                & 4,5 MB & 8,4 MB \\
+        \midrule
+        Lecturas en 32 GB      & $\approx 1\,900$ millones & $\approx 1\,000$ millones \\
+        Lecturas en 64 GB      & $\approx 3\,800$ millones & $\approx 2\,000$ millones \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Aun con la trama nueva, una SD de 32 GB alcanza para miles de años de
+lecturas, así que \textbf{la capacidad no es el límite}. El límite práctico es
+el tamaño máximo de un archivo en FAT32 (4 GB), que se alcanzaría recién en unos
+500 años. El \textbf{respaldo externo} se hace por seguridad (falla o robo
+de la tarjeta), no por falta de espacio: proponemos descargar la SD una vez por
+mes, lo que son unos 0,7 MB de datos. La transmisión al servidor también es
+liviana: unos 0,76 MB por mes sin contar la sobrecarga del protocolo GPRS.
+
 % ======================================================
 % 6. DISENO MECANICO
 % ======================================================
