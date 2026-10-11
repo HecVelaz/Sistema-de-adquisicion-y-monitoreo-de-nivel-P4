@@ -153,7 +153,7 @@ previa.
     \item \textbf{Pérdidas de datos (línea de base):} la estación de P3 lleva
         unos 9 meses enviando datos. Tenemos acceso total a ellos, así que
         calcularemos la \textbf{disponibilidad} (datos recibidos frente a
-        esperados, uno cada 2 min) y la cantidad y duración de los huecos.
+        esperados) y la cantidad y duración de los huecos.
     \item \textbf{Incertidumbre:} el sensor ultrasónico se reemplaza por un
         radar de $\pm$3 mm (según la ficha). Su error real se mide en banco
         (punto~\ref{sec:validacion}).
@@ -310,8 +310,7 @@ y colas requieren tolerancia a corte.
 
 \needspace{14\baselineskip}
 \textbf{Peso de cada dato y capacidad de la SD.} Cada lectura se guarda como
-una línea de texto (CSV). Con una lectura cada 2 min se generan
-\textbf{720 lecturas por día}.
+una línea de texto (CSV). Se mide \textbf{cada 5 min}, lo que da \textbf{288 lecturas por día}.
 
 \begin{table}[H]
     \centering
@@ -323,8 +322,8 @@ una línea de texto (CSV). Con una lectura cada 2 min se generan
         Línea guardada         & \footnotesize\texttt{1780000000,1.234}
                                & \footnotesize\texttt{1780000000,123456,1.234,0.350,0} \\
         Tamaño por lectura     & 17 B (136 bits) & 32 B (256 bits) \\
-        Por día (720 lecturas) & 12 kB  & 23 kB \\
-        Por año                & 4,5 MB & 8,4 MB \\
+        Por día (288 lecturas) & 4,9 kB & 9,2 kB \\
+        Por año                & 1,8 MB & 3,4 MB \\
         \midrule
         Lecturas en 32 GB      & $\approx 1\,900$ millones & $\approx 1\,000$ millones \\
         Lecturas en 64 GB      & $\approx 3\,800$ millones & $\approx 2\,000$ millones \\
@@ -335,10 +334,10 @@ una línea de texto (CSV). Con una lectura cada 2 min se generan
 Aun con la trama nueva, una SD de 32 GB alcanza para miles de años de
 lecturas, así que \textbf{la capacidad no es el límite}. El límite práctico es
 el tamaño máximo de un archivo en FAT32 (4 GB), que se alcanzaría recién en unos
-500 años. El \textbf{respaldo externo} se hace por seguridad (falla o robo
+1\,300 años. El \textbf{respaldo externo} se hace por seguridad (falla o robo
 de la tarjeta), no por falta de espacio: proponemos descargar la SD una vez por
-mes, lo que son unos 0,7 MB de datos. La transmisión al servidor también es
-liviana: unos 0,76 MB por mes sin contar la sobrecarga del protocolo GPRS.
+mes, lo que son unos 0,28 MB de datos. La transmisión al servidor también es
+liviana: unos 0,3 MB por mes sin contar la sobrecarga del protocolo GPRS.
 
 % ======================================================
 % 6. DISENO MECANICO
@@ -388,7 +387,7 @@ propia; falta tratamiento de dato viejo o inválido.
         Primero la probamos con la base de datos histórica de P3 y, cuando el
         radar publique, pasa a mostrar los datos nuevos.
     \item \SEG\ \textbf{Dato viejo o inválido:} la web muestra la antigüedad de
-        la última lectura (aviso si pasan más de 10 min sin datos) y el estado
+        la última lectura (aviso si pasan más de 15 min sin datos, es decir, 3 lecturas) y el estado
         del sensor (campo \emph{estado} de la trama).
     \item \FUERA\ \textbf{Usuarios y permisos:} los datos son abiertos y la web
         solo muestra información; no hay nada que restringir.

@@ -183,7 +183,7 @@ uint32_t reloj_segundos_hasta_proximo_slot_5min(const rtc_datetime_t *dt)
 
     segundos_actuales = (dt->minute * 60) + dt->second;
 
-    uint32_t intervalo = 2 * 60;
+    uint32_t intervalo = 5 * 60;
 
     uint32_t resto = segundos_actuales % intervalo;
 

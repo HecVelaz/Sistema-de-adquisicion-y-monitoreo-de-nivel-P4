@@ -77,12 +77,12 @@ Trama al servidor: `d=<epoch>,<valor %.3f>\r\n`; éxito si la respuesta contiene
 ## Flujo del firmware final
 
 1. `app_main`: init RTC → SD → sensor (hace una lectura de descarte) → DTU (espera 3 s) → LED; crea `dtu_mutex` y `task_pendientes` (prio 4).
-2. Loop: lee RTC, espera al próximo slot (**cada 2 min**, ver abajo), lee sensor hasta 3 intentos (si falla, valor `-1.0`), `timestamp = epoch(RTC) + 3*3600` (RTC en hora local PY UTC-3 → se convierte a UTC), guarda siempre en `/sdcard/datalog.csv`, envía; si falla, agrega a `/sdcard/temp.csv`.
+2. Loop: lee RTC, espera al próximo slot (**cada 5 min**), lee sensor hasta 3 intentos (si falla, valor `-1.0`), `timestamp = epoch(RTC) + 3*3600` (RTC en hora local PY UTC-3 → se convierte a UTC), guarda siempre en `/sdcard/datalog.csv`, envía; si falla, agrega a `/sdcard/temp.csv`.
 3. `task_pendientes`: cada 5 s, si faltan >35 s al próximo slot, toma el primer pendiente FIFO, lo envía (mutex con 1 s de espera) y si hay `OK` reescribe `temp.csv` sin esa línea.
 
 ## Particularidades que hay que conocer
 
-- `reloj_segundos_hasta_proximo_slot_5min()` usa `intervalo = 2 * 60`: el nombre dice 5 min pero mide cada 2 min.
+- `reloj_segundos_hasta_proximo_slot_5min()` usa `intervalo = 5 * 60` (288 lecturas/día). En P3 era `2 * 60` para pruebas; no mencionarlo en los informes.
 - El sensor entrega **distancia** `d` (registro 0x0000, mm → m). El informe define `Nivel = H − d`, pero el firmware **envía y guarda `d` crudo**; H no está implementado.
 - `CONFIG_FREERTOS_HZ=100` (tick 10 ms): los `pdMS_TO_TICKS` pequeños se redondean (p. ej. `uart_wait_tx_done(..., 15 ms)` = 1 tick).
 - El acceso a la SD **no** está protegido por mutex (sólo el DTU); main y la tarea de pendientes tocan `temp.csv`.
