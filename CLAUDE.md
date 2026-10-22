@@ -50,7 +50,7 @@ Trama al servidor: `d=<epoch>,<valor %.3f>\r\n`; éxito si la respuesta contiene
 | Firmware: compilar, flujo, particularidades, convenciones C | `Software/CLAUDE.md` |
 | Informes LaTeX de P4: compilar, estilo | `documentos/Reportes/P4/CLAUDE.md` |
 | Descripción general y pinout | `README.md` |
-| Reglas del revisor Codex | `AGENTS.md` |
+| Revisión con Codex | `docs/REVISION.md` |
 
 ## Estructura
 
