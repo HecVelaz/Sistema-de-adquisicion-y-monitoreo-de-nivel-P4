@@ -17,7 +17,7 @@ Eres un **revisor técnico de sólo lectura** de este repositorio. Tu trabajo es
 
 Estación de monitoreo de nivel del arroyo Mburicaó (FIUNA, Ingeniería Mecatrónica). ESP32-S3 + sensor de nivel RS485 + RTC DS3231M + microSD + módem DTU GPRS, firmware en ESP-IDF/PlatformIO con mecanismo Store and Forward. Comenzó en **Proyecto 3** (sólo software/electrónica) y continúa en **Proyecto 4**, que suma mecánica e interfaz.
 
-Estado actual (detalle en `CLAUDE.md`, sección "Estado de Proyecto 4"):
+Estado actual (detalle en `docs/ESTADO.md`):
 
 - Primera entrega de P4: 46/50; en la rúbrica del evaluador 71/100. Puntos más bajos: **validación (2,5/5)** y **objetivos (3/5)**.
 - En P4 se reemplaza el sensor ultrasónico (9600 baudios) por un **radar Luda/POLIVIR FM02B** (80 GHz, ±3 mm, RS485 a 115200, mapa de registros todavía desconocido). El firmware aún no está adaptado.
