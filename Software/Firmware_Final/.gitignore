@@ -3,3 +3,6 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+
+# Credenciales WiFi y URL del servidor (repo publico)
+components/wifi_envio/credenciales.h

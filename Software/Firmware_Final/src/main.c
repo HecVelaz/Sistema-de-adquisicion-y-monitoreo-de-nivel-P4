@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <time.h>
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -9,51 +10,93 @@
 #include "led_blink.h"
 #include "sdcard.h"
 #include "sensor_rs485.h"
-#include "modem_dtu.h"
+#include "wifi_envio.h"
 
 static const char *TAG = "MAIN";
-static SemaphoreHandle_t dtu_mutex;
+static SemaphoreHandle_t envio_mutex;
+
+// Paraguay: UTC-3 fijo (el RTC guarda hora local; el epoch enviado es UTC)
+#define OFFSET_PY_S     (3 * 3600)
+#define EPOCH_MINIMO    1735689600UL   // 2025-01-01: timestamps anteriores son basura
+
+// ======================================================
+// SINCRONIZAR EL RTC POR NTP (si hay WiFi)
+// ======================================================
+
+static bool sincronizar_rtc(void)
+{
+    uint32_t utc;
+
+    if (!wifi_hora_utc(&utc))
+    {
+        return false;
+    }
+
+    time_t local = (time_t)(utc - OFFSET_PY_S);
+    struct tm t;
+    gmtime_r(&local, &t);
+
+    rtc_datetime_t dt = {
+        .year   = (uint16_t)(t.tm_year + 1900),
+        .month  = (uint8_t)(t.tm_mon + 1),
+        .day    = (uint8_t)t.tm_mday,
+        .hour   = (uint8_t)t.tm_hour,
+        .minute = (uint8_t)t.tm_min,
+        .second = (uint8_t)t.tm_sec,
+    };
+
+    if (!reloj_set(&dt))
+    {
+        return false;
+    }
+
+    char fecha[32];
+    reloj_format(&dt, fecha, sizeof(fecha));
+    ESP_LOGI(TAG, "RTC sincronizado por NTP: %s (hora PY)", fecha);
+
+    return true;
+}
 
 
 // ======================================================
-// ENVIO DTU PARA CICLO PRINCIPAL
+// ENVIO WIFI PARA CICLO PRINCIPAL
 // Espera mas tiempo porque tiene prioridad.
 // ======================================================
 
-static bool dtu_send_level_main(uint32_t timestamp, float nivel)
+static bool envio_level_main(uint32_t timestamp, float nivel)
 {
     bool ok = false;
 
-    if (xSemaphoreTake(dtu_mutex, pdMS_TO_TICKS(30000)) == pdTRUE)
+    if (xSemaphoreTake(envio_mutex, pdMS_TO_TICKS(30000)) == pdTRUE)
     {
-        ok = dtu_send_level(timestamp, nivel);
-        xSemaphoreGive(dtu_mutex);
+        ok = wifi_send_level(timestamp, nivel);
+        xSemaphoreGive(envio_mutex);
     }
     else
     {
-        ESP_LOGW(TAG, "DTU ocupado. No se pudo enviar dato actual");
+        ESP_LOGW(TAG, "Envio ocupado. No se pudo enviar dato actual");
     }
 
     return ok;
 }
 
 // ======================================================
-// ENVIO DTU PARA PENDIENTES
-// Espera poco. Si el DTU esta ocupado, no molesta al ciclo principal.
+// ENVIO WIFI PARA PENDIENTES
+// Espera poco. Si el envio esta ocupado, no molesta al ciclo principal.
 // ======================================================
 
-static bool dtu_send_level_bg(uint32_t timestamp, float nivel)
+static bool envio_level_bg(uint32_t timestamp, float nivel)
 {
     bool ok = false;
 
-    if (xSemaphoreTake(dtu_mutex, pdMS_TO_TICKS(1000)) == pdTRUE)
+    if (xSemaphoreTake(envio_mutex, pdMS_TO_TICKS(1000)) == pdTRUE)
     {
-        ok = dtu_send_level(timestamp, nivel);
-        xSemaphoreGive(dtu_mutex);
+        ok = wifi_send_level(timestamp, nivel);
+        xSemaphoreGive(envio_mutex);
     }
     else
     {
-        ESP_LOGW(TAG, "DTU ocupado. Pendiente queda en cola");
+        ESP_LOGW(TAG, "Envio ocupado. Pendiente queda en cola");
     }
 
     return ok;
@@ -79,14 +122,25 @@ static void task_pendientes(void *pv)
                 float nivel;
 
                 if (sdcard_has_pending() &&
-                    sdcard_read_first_pending(&ts, &nivel))
+                    sdcard_read_first_pending(&ts, &nivel) &&
+                    ts < EPOCH_MINIMO)
+                {
+                    // Dato guardado con el RTC sin hora (ano 2000): no se envia
+                    ESP_LOGW(TAG,
+                             "BG descarta pendiente con fecha invalida: d=%lu,%.3f",
+                             (unsigned long)ts,
+                             nivel);
+                    sdcard_remove_first_pending();
+                }
+                else if (sdcard_has_pending() &&
+                         sdcard_read_first_pending(&ts, &nivel))
                 {
                     ESP_LOGI(TAG,
                              "BG reenviando pendiente: d=%lu,%.3f",
                              (unsigned long)ts,
                              nivel);
 
-                    if (dtu_send_level_bg(ts, nivel))
+                    if (envio_level_bg(ts, nivel))
                     {
                         sdcard_remove_first_pending();
                         ESP_LOGI(TAG, "BG pendiente enviado y eliminado");
@@ -123,14 +177,16 @@ void app_main(void)
     reloj_init();
     sdcard_init();
     sensor_rs485_init();
-    dtu_init();
+    wifi_init();
     led_init();
-    dtu_mutex = xSemaphoreCreateMutex();
+    envio_mutex = xSemaphoreCreateMutex();
+
+    sincronizar_rtc();
 
     xTaskCreate(
              task_pendientes,
              "task_pendientes",
-             4096,
+             8192,
              NULL,
              4,
             NULL
@@ -147,6 +203,19 @@ void app_main(void)
             continue;
         }
 
+        if (!reloj_hora_valida(&dt))
+        {
+            // Sin hora real no se mide: el dato quedaria con fecha falsa
+            ESP_LOGE(TAG, "RTC sin hora valida (%04d). Reintentando NTP en 60 s", dt.year);
+
+            if (!sincronizar_rtc())
+            {
+                vTaskDelay(pdMS_TO_TICKS(60000));
+            }
+
+            continue;
+        }
+
         uint32_t espera_s = reloj_segundos_hasta_proximo_slot_5min(&dt);
 
         if (espera_s > 0)
@@ -160,7 +229,7 @@ void app_main(void)
         }
    
         float nivel_m = 0.0f;
-        uint32_t timestamp = reloj_datetime_to_epoch(&dt) + (3 * 3600);
+        uint32_t timestamp = reloj_datetime_to_epoch(&dt) + OFFSET_PY_S;
 
         char fecha[32];
         reloj_format(&dt, fecha, sizeof(fecha));
@@ -194,7 +263,7 @@ void app_main(void)
         sdcard_append_level(timestamp, nivel_m);
 
         // Enviar SIEMPRE el dato actual primero
-        if (!dtu_send_level_main(timestamp, nivel_m))
+        if (!envio_level_main(timestamp, nivel_m))
         {
             ESP_LOGW(TAG, "Fallo envio actual. Guardando pendiente");
             sdcard_append_pending(timestamp, nivel_m);

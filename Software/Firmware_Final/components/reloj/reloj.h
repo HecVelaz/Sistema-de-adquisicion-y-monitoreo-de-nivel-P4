@@ -41,6 +41,12 @@ bool reloj_init(void);
 
 bool reloj_now(rtc_datetime_t *dt);
 
+// Escribe la hora (local de Paraguay, UTC-3) y borra el flag OSF
+bool reloj_set(const rtc_datetime_t *dt);
+
+// false si el RTC perdio la hora (ano < 2025)
+bool reloj_hora_valida(const rtc_datetime_t *dt);
+
 void reloj_format(
     const rtc_datetime_t *dt,
     char *buffer,
