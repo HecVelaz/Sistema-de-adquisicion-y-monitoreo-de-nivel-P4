@@ -29,7 +29,7 @@ Trama al servidor: `d=<epoch>,<valor %.3f>\r\n`; éxito si la respuesta contiene
 - El estado va en `docs/ESTADO.md`, nunca en `CLAUDE.md`. Este archivo solo cambia si cambia una regla.
 - Al cerrar una sesión: `/cerrar`; al empezar: `/retomar`.
 - Las decisiones de alcance de `docs/DECISIONES.md` están acordadas con el usuario: no proponer revertirlas.
-- **Datos privados**: `documentos/Reportes/P4/` también contiene, solo en local y en `.gitignore`, la planilla `Evaluacion_Proyecto_4_Mecatronica_FIUNA.xlsx` (notas de los 16 equipos), `tarea.jpeg` (teléfono del profesor) y la captura del comentario del profesor. **Nunca subirlos**: el repo es público.
+- **Datos privados**: `documentos/Reportes/P4_1erParcial/` también contiene, solo en local y en `.gitignore`, la planilla `Evaluacion_Proyecto_4_Mecatronica_FIUNA.xlsx` (notas de los 16 equipos), `tarea.jpeg` (teléfono del profesor) y la captura del comentario del profesor. **Nunca subirlos**: el repo es público.
 - No subir `.pio/`, binarios ni archivos grandes nuevos (los videos van a Google Drive).
 - Nombres de carpeta sin espacios al final (Windows no puede clonarlos).
 
@@ -48,7 +48,7 @@ Trama al servidor: `d=<epoch>,<valor %.3f>\r\n`; éxito si la respuesta contiene
 | Por qué se decidió algo, alcance, objetivos | `docs/DECISIONES.md` |
 | Qué falta hacer | `docs/PENDIENTES.md` |
 | Firmware: compilar, flujo, particularidades, convenciones C | `Software/CLAUDE.md` |
-| Informes LaTeX de P4: compilar, estilo | `documentos/Reportes/P4/CLAUDE.md` |
+| Informes LaTeX de P4: compilar, estilo | `documentos/Reportes/P4_1erParcial/CLAUDE.md` |
 | Descripción general y pinout | `README.md` |
 | Revisión con Codex | `docs/REVISION.md` |
 
@@ -57,6 +57,6 @@ Trama al servidor: `d=<epoch>,<valor %.3f>\r\n`; éxito si la respuesta contiene
 - `Software/Firmware_Final/` — firmware de producción; `Software/Firmware_Pruebas/` — pruebas por módulo.
 - `Hardware/V3_Estacion_Nivel/` — KiCad 9 (2 capas), Gerbers en `fabrication_files_G10/`, BOM `Estacion_Nivel_V3.csv`, STEP, planos PDF. `Librerias Kicad/` son zips de terceros.
 - `documentos/Diseño Mecánico/` — SolidWorks (`Caja/`, `sensor/`) + PDFs de planos.
-- `documentos/Reportes/` — informes de P3 (`1f_*`, `2p_*`, `P3_final.pptx`). `documentos/Reportes/P4/` — todo lo de P4.
+- `documentos/Reportes/` — informes de P3 (`1f_*`, `2p_*`, `P3_final.pptx`). `documentos/Reportes/P4_1erParcial/` — material del 1.er parcial de P4. `documentos/Reportes/P4_2doParcial/` — 2.º parcial: manuales del radar, fotos, guía de conexión (`Guia_conexion_radar_FM02B.md/.pdf`).
 - `documentos/Evidencias_Pruebas/` — capturas; videos de las pruebas de P3 enlazados a Google Drive.
 - `docs/` — estado, decisiones y pendientes.

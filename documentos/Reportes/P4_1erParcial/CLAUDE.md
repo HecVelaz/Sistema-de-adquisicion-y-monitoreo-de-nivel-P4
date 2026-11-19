@@ -1,6 +1,6 @@
 # CLAUDE.md — Informes de Proyecto 4
 
-Reglas para los informes LaTeX de `documentos/Reportes/P4/`. Las reglas generales están en el `CLAUDE.md` raíz; qué entregables existen, en `docs/ESTADO.md`.
+Reglas para los informes LaTeX de `documentos/Reportes/P4_1erParcial/`. Las reglas generales están en el `CLAUDE.md` raíz; qué entregables existen, en `docs/ESTADO.md`.
 
 ## Fuentes
 
@@ -10,7 +10,7 @@ Reglas para los informes LaTeX de `documentos/Reportes/P4/`. Las reglas generale
 ## Compilar (TeX Live instalado)
 
 ```bash
-cd documentos/Reportes/P4/latex_puntos_mejora && pdflatex main.tex && pdflatex main.tex
+cd documentos/Reportes/P4_1erParcial/latex_puntos_mejora && pdflatex main.tex && pdflatex main.tex
 ```
 
 Luego copiar `main.pdf` a `../Informe_puntos_de_mejora_P4.pdf` y regenerar `../latex_puntos_mejora_overleaf.zip` (en la respuesta a la evaluación: `../Respuesta_evaluacion_1P_P4.pdf` y `../latex_respuesta_evaluacion_overleaf.zip`). Revisar las páginas renderizadas (`pdftoppm`) antes de entregar.

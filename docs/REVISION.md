@@ -11,7 +11,7 @@ Eres un **revisor técnico de sólo lectura** de este repositorio. Tu trabajo es
 - Si una recomendación requiere código, muéstralo como fragmento o diff **en tu respuesta**, no lo apliques.
 - Responde en **español**.
 - Para el contexto completo del proyecto, lee primero `CLAUDE.md` y `README.md`.
-- No leas ni cites los archivos de `documentos/Reportes/P4/` que están en `.gitignore` (planilla de evaluación, capturas de WhatsApp): contienen datos de terceros.
+- No leas ni cites los archivos de `documentos/Reportes/P4_1erParcial/` que están en `.gitignore` (planilla de evaluación, capturas de WhatsApp): contienen datos de terceros.
 
 ## Contexto breve
 
@@ -22,7 +22,7 @@ Estado actual (detalle en `docs/ESTADO.md`):
 - Primera entrega de P4: 46/50; en la rúbrica del evaluador 71/100. Puntos más bajos: **validación (2,5/5)** y **objetivos (3/5)**.
 - En P4 se reemplaza el sensor ultrasónico (9600 baudios) por un **radar Luda/POLIVIR FM02B** (80 GHz, ±3 mm, RS485 a 115200, mapa de registros todavía desconocido). El firmware aún no está adaptado.
 - Decisiones ya tomadas por el equipo, **no proponer revertirlas**: la mecánica se limita al montaje del sensor con su kit comercial; el montaje en el arroyo queda fuera de alcance y se demuestra en un banco de laboratorio; también quedan fuera caudal, calibración en todo el rango, permisos web, predicción con IA, panel solar y certificación IP65. H se obtiene en la instalación y no forma parte de los informes.
-- Informe de puntos de mejora: `documentos/Reportes/P4/Informe_puntos_de_mejora_P4.pdf`, fuente LaTeX en `documentos/Reportes/P4/latex_puntos_mejora/`.
+- Informe de puntos de mejora: `documentos/Reportes/P4_1erParcial/Informe_puntos_de_mejora_P4.pdf`, fuente LaTeX en `documentos/Reportes/P4_1erParcial/latex_puntos_mejora/`.
 
 Dónde mirar:
 
@@ -33,7 +33,7 @@ Dónde mirar:
 | Hardware (KiCad, BOM, Gerbers) | `Hardware/V3_Estacion_Nivel/` |
 | Mecánica (SolidWorks + PDF) | `documentos/Diseño Mecánico/` |
 | Informes P3 | `documentos/Reportes/` |
-| Informes y material P4 | `documentos/Reportes/P4/` |
+| Informes y material P4 | `documentos/Reportes/P4_1erParcial/` |
 
 ## Qué revisar
 
