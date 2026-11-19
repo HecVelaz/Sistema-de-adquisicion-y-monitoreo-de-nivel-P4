@@ -1,30 +1,35 @@
 # Pendientes
 
-Tareas y próximos pasos. Tachar o mover a `docs/ESTADO.md` cuando se terminen.
+Tareas y próximos pasos, por prioridad. Lo terminado se borra de aquí y queda en `docs/BITACORA.md`.
 
-## Movido desde CLAUDE.md (2026-10-22)
+## Ya
 
-### Fecha límite
+1. **Confirmar la fecha de entrega del 2.º parcial**: la registrada (16/11/2026) ya pasó.
+2. **Borrar de la base los registros de prueba** con fecha del año 2000 y valor `-1` (epoch < 2025-01-01).
+3. **Pila BT1** (CR2032) del DS3231: verificar o poner una nueva.
+4. **Conectar el radar a J3** según la guía y ver en el monitor `Distancia: … | senal: …`.
 
-- **16/11/2026**: entrega del 2.º parcial de P4.
+## Banco de laboratorio (validación)
 
-### Antes de que llegue el radar (llega entre la 1.ª y la 2.ª semana de noviembre de 2026)
+5. Balde a ≤ 1,2 m, antena nivelada con burbuja; confirmar si el ángulo ≈ 55° sirve como referencia de nivelación.
+6. Señal de nivel sobre el agua: si sigue baja, subir la potencia de emisión de nivel (7 → 3 → 0).
+7. Exactitud vs cinta métrica a 3–4 alturas: objetivo ±10 mm. Si el error es constante, corregir la calibración (hoy −46 mm) y anotar ambos valores.
+8. Definir un umbral de señal mínima para marcar la lectura como inválida.
 
-- Ensayar con el sensor ultrasónico de P3: ≥ 10 cortes (perdidos/duplicados, tiempo de recuperación), disponibilidad en 7 días (≥ 95 %), consumo y autonomía.
-- Conseguir el manual del radar con el mapa de registros RS485 (la ficha comercial no lo trae): hace falta antes de reescribir `sensor_rs485`.
+## Firmware y servidor
 
-### Con el radar
+9. Trama nueva `d=<epoch>,<id>,<distancia>,<velocidad>,<estado>` (ID para detectar perdidos/duplicados; estado en vez de `-1`) y adaptar el PHP.
+10. Ensayos: ≥ 10 cortes (perdidos/duplicados, tiempo de recuperación), disponibilidad 7 días (≥ 95 %), consumo y autonomía con el UPS.
+11. Si la red bloquea NTP: tomar la hora del encabezado `Date` de la respuesta del servidor.
+12. Sugerir al dueño del servidor que `insertarMasi.php` pida una clave (hoy inserta sin autenticación).
 
-- Driver RS485 del radar en `sensor_rs485` (115200 baudios, CRC, mapa de registros).
-- Implementar la trama nueva `d=<epoch>,<id>,<distancia>,<velocidad>,<estado>` (ID, UTC, estado en vez de `-1`).
-- Montaje en banco de laboratorio (antena nivelada, haz de 14° libre) y exactitud: error ≤ ±10 mm vs cinta métrica.
+## Interfaz
 
-### Interfaz
+13. Web propia del equipo: históricos, antigüedad del dato, estado del sensor, alarma; probar con la BD de P3 y luego con el radar.
 
-- Web propia del equipo: históricos, antigüedad del dato, estado del sensor, alarma; probar con la BD histórica de P3 y luego con los datos del radar.
+## Prolijidad
 
-### Prolijidad (detectado, sin resolver)
-
-- `README.md` raíz: estructura de `components/` distinta a la real.
-- `Hardware/V3_Estacion_Nivel/ERC.rpt`: 4 errores `power_pin_not_driven` (faltan PWR_FLAG); `DRC.rpt` es de una versión vieja.
-- `sdkconfig` del firmware final declara flash de 2 MB aunque el módulo es N16R8; `Firmware_Pruebas/sdkconfig.defaults` habla de N8R8.
+14. Regenerar desde KiCad el esquemático PDF de `planos/` y el BOM `.csv` (desactualizados respecto de la placa).
+15. `README.md` raíz: módem → WiFi, estructura de `components/`, pinout de conectores.
+16. `ERC.rpt` (faltan PWR_FLAG) y `DRC.rpt` viejo.
+17. `sdkconfig` declara flash de 2 MB y el módulo tiene más (el bootloader ve 8 MB); `Firmware_Pruebas/sdkconfig.defaults` habla de N8R8.

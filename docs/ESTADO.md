@@ -1,46 +1,42 @@
-# Estado del proyecto
+# Estado del proyecto — 2026-11-19
 
-Lo que está hecho, a medias y mediciones. Se actualiza al cerrar cada sesión (`/cerrar`).
+Foto del estado actual. Se reescribe al cerrar cada sesión (`/cerrar`); la historia está en `docs/BITACORA.md`.
 
-## Movido desde CLAUDE.md (2026-10-22)
+## Contexto
 
-### Proyecto 3 (2026-1C)
+- P3 terminado (línea de base). P4 1.er parcial: 46/50; lo más flojo fue validación y objetivos (detalle en la bitácora).
+- Informes del 1.er parcial y su fuente LaTeX: `documentos/Reportes/P4_1erParcial/`. Material del 2.º parcial: `documentos/Reportes/P4_2doParcial/`.
 
-- Terminado: PCB propia + firmware. Informes `documentos/Reportes/1f_*`, `2p_*`, `P3_final.pptx`.
-- Pruebas de P3 (videos de sensor, SD, RTC, módem, sistema integrado, Store and Forward; ~9 meses de datos en Grafana) se usan como línea de base en P4.
+## Radar FM02B (ya está en el laboratorio)
 
-### Evaluación de la primera entrega de P4 (20/09/2026)
+- Manuales con mapa de registros en `P4_2doParcial/`. Distancia `d` = registro `0x0001` (mm); señal `0x0004`.
+- Configuración leída por Bluetooth: dirección 1, **115200** (confirmado), calibración **−46 mm** (origen desconocido), potencia de nivel **7 = mínima**.
+- Lectura de prueba con la app: señal de nivel **4** (el manual pide > 30). No se sabe a qué apuntaba.
+- **Todavía no se conectó a la PCB ni se probó con el firmware.**
 
-- Nota oficial **46/50** (informe 21/25, diseño mecánico 25/25). En la planilla del evaluador: **71/100** en la rúbrica (= Σ peso × puntaje/5); 85,7 % es la valoración *relativa* al mejor equipo (82,8), no un puntaje propio.
-- Criterios más bajos: **Validación y seguridad 2,5/5** y **Objetivos y alcance 3/5**. Mejora prioritaria según la planilla: "cerrar la metrología del nivel y demostrar recuperación de datos ante cortes".
-- Comentario del Prof. Fretes: el resumen no debe empezar con "El presente informe…"; reducir los 15 objetivos específicos a 5–6, con al menos uno de electrónica, mecánica e interfaz (bien planteados: 1, 8, 10, 11, 13).
-- Tarea del Prof. Gaona: de la "evaluación detallada", rescatar puntos a mejorar y los que quedan fuera de alcance, justificando. Se respondió con `documentos/Reportes/P4_1erParcial/Respuesta_evaluacion_1P_P4.pdf` (ver abajo).
+## Placa V3
 
-### Nuevo sensor: radar Luda / POLIVIR FM02B (part number LDFM04_B)
+- Conectores reales: **J2** jack 12 V · **J9** USB-C o **J4** jack 5 V (uno solo) · **J3** radar (1 +12 V, 2 A, 3 B, 4 GND) · **J8** canal del módem, sin uso.
+- El esquemático PDF de `Hardware/V3_Estacion_Nivel/planos/` y el BOM `.csv` están **desactualizados** (muestran J4/J5 de 2 polos); el `.kicad_pcb` y los `.kicad_sch` son los correctos.
+- El DS3231 estaba en el año 2000: **sospecha de pila BT1 ausente o agotada** (sin verificar).
+- `DRC.rpt` es de una versión vieja; `ERC.rpt` tiene 4 `power_pin_not_driven`.
 
-- Nivel por radar 80 GHz: 0,1–40 m, ±3 mm, resolución 1 mm, haz 14°. Velocidad superficial por radar 24 GHz: 0,05–20 m/s, ±0,01 m/s.
-- 9–24 V (típ. 12 V), 130–160 mA; **RS485 a 115200 baudios** (el ultrasónico de P3 era 9600). Peso 0,8 kg; incluye soporte orientable, placa para poste, 3 abrazaderas inoxidables y 5 m de cable. USD 690,41 + 64,80 envío.
-- La ficha comercial tiene inconsistencias (rango de velocidad 0,05 vs 0,1 m/s; corriente 87–140 vs 130–160 mA) y **no trae el mapa de registros RS485**.
-- Fotos y capturas de la ficha: `documentos/Reportes/P4_1erParcial/sensor_nuevo/`.
-- El firmware todavía no está adaptado al radar.
+## Firmware (`Software/Firmware_Final`)
 
-### Respuesta a la evaluación detallada
+- Compila (`espressif32@6.13.0`, ESP-IDF 5.5.3). App 1,03 MB en partición de 1,5 MB.
+- **Radar**: driver nuevo (115200, `0x0001`, CRC, DE/RE por hardware). Compila; **sin probar con el radar**.
+- **WiFi + HTTP**: probado en la placa con la red `FIUNA` (WPA2, RSSI −63 dBm): `HTTP 200 OK` del servidor. El módem DTU ya no se usa.
+- **Hora**: NTP al arrancar → DS3231 en hora PY. Sin hora válida no mide. El usuario vio un dato llegar a las 19:55 con hora correcta.
+- Credenciales WiFi y URL del servidor: solo en `components/wifi_envio/credenciales.h` (local, en `.gitignore`).
+- Intervalo de medición 5 min. Se envía y guarda `d` crudo (`Nivel = H − d` no está en la placa).
+- Trama vigente `d=<epoch>,<valor %.3f>`; si el sensor falla se envía `-1`. La trama nueva acordada no está implementada.
+- Detalle técnico y particularidades: `Software/CLAUDE.md`.
 
-- Entregable: `documentos/Reportes/P4_1erParcial/Respuesta_evaluacion_1P_P4.pdf`; fuente LaTeX en `documentos/Reportes/P4_1erParcial/latex_respuesta_evaluacion/` (zip `documentos/Reportes/P4_1erParcial/latex_respuesta_evaluacion_overleaf.zip`). Es para la entrega del 2.º parcial (16/11/2026).
-- Cada una de las 10 debilidades de la planilla (PDF 1) se marca como REALIZADO / 2.º PARCIAL / FUERA DE ALCANCE. Las decisiones que tomó están en `docs/DECISIONES.md`.
+## Base de datos
 
-### Informe de puntos de mejora
+- Quedaron registros de prueba `-1.000` con fecha del año 2000 (epoch ~946 696 200), enviados antes del arreglo del reloj. **No se borraron todavía.**
 
-- Entregable: `documentos/Reportes/P4_1erParcial/Informe_puntos_de_mejora_P4.pdf`; fuente LaTeX `documentos/Reportes/P4_1erParcial/latex_puntos_mejora/main.tex` (+ `diagramas/diagrama_mejoras.tex` en TikZ, `figuras/`).
+## Documentación
 
-### Firmware
-
-- Ambos proyectos (`Software/Firmware_Final/`, `Software/Firmware_Pruebas/`) compilan en Linux (verificado 2026-10-06) con `espressif32@6.13.0` (ESP-IDF 5.5.3).
-- Intervalo de medición: 5 min (288 lecturas/día). En P3 era `2 * 60` para pruebas.
-- El firmware **envía y guarda `d` crudo**; `Nivel = H − d` no está implementado.
-- Trama actual: `d=<epoch>,<valor %.3f>\r\n` (la nueva trama acordada aún no está implementada, ver `docs/DECISIONES.md`).
-
-### Hardware y documentación
-
-- `Hardware/V3_Estacion_Nivel/DRC.rpt` es de una versión vieja (`Estacion_lluviaV2`); `ERC.rpt` tiene 4 errores de tipo `power_pin_not_driven` (faltan PWR_FLAG).
-- El `README.md` raíz describe una estructura de `components/` ligeramente distinta a la real (nombres `led_blink`, `dtu`, `rtc`, `sensor` en Pruebas).
+- Guía de armado: `P4_2doParcial/Guia_conexion_radar_FM02B.md` y `.pdf`, con diagrama sobre la foto de la placa.
+- `README.md` raíz: describe el módem DTU y una estructura de `components/` que ya no coincide.

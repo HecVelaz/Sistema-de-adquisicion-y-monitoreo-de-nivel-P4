@@ -34,3 +34,16 @@ Electrónica (integración + consumo/autonomía), Firmware (Store and Forward co
 ### Firmware
 
 - La plataforma está fijada en `espressif32@6.13.0` (ESP-IDF 5.5.3, la versión validada en P3): sin el pin PlatformIO baja ESP-IDF 6.x, donde el componente `driver` ya no exporta `driver/gpio.h` y el build falla.
+
+## 2026-11-19
+
+### Comunicación y hora
+
+- **Envío por WiFi del ESP32-S3 en lugar del módem DTU** (decisión del equipo "por ahora"). `modem_dtu` queda en el árbol sin usar; J8 y UART2 libres.
+- Se mantiene el mismo script del servidor (`insertarMasi.php`) y la trama `d=<epoch>,<valor>`. Como no se conoce el PHP, el firmware hace un POST con `d=` en la URL **y** en el cuerpo (sirve con `$_GET`, `$_POST` o `$_REQUEST`, una sola inserción).
+- **Hora por NTP** al arrancar y escrita en el DS3231 (hora PY, se conserva el +3 h al enviar). **Sin hora válida (año < 2025) no se mide**, y los pendientes con fecha < 2025-01-01 se descartan en vez de enviarse. Motivo: el RTC estaba en el año 2000 y se enviaron datos con esa fecha.
+
+### Radar
+
+- Se lee solo la distancia `d` (`0x0001`); la señal (`0x0004`) solo se registra en el log hasta definir un umbral en el banco.
+- No se cambian parámetros del radar (calibración −46 mm, potencias) hasta medir en el banco con cinta métrica.

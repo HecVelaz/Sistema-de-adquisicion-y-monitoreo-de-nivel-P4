@@ -30,6 +30,7 @@ Trama al servidor: `d=<epoch>,<valor %.3f>\r\n`; éxito si la respuesta contiene
 - Al cerrar una sesión: `/cerrar`; al empezar: `/retomar`.
 - Las decisiones de alcance de `docs/DECISIONES.md` están acordadas con el usuario: no proponer revertirlas.
 - **Datos privados**: `documentos/Reportes/P4_1erParcial/` también contiene, solo en local y en `.gitignore`, la planilla `Evaluacion_Proyecto_4_Mecatronica_FIUNA.xlsx` (notas de los 16 equipos), `tarea.jpeg` (teléfono del profesor) y la captura del comentario del profesor. **Nunca subirlos**: el repo es público.
+- **Credenciales y servidor**: el SSID/clave del WiFi y la URL/IP del script de inserción del servidor van solo en `Software/Firmware_Final/components/wifi_envio/credenciales.h` (en `.gitignore`). No escribirlos en ningún otro archivo del repo.
 - No subir `.pio/`, binarios ni archivos grandes nuevos (los videos van a Google Drive).
 - Nombres de carpeta sin espacios al final (Windows no puede clonarlos).
 
@@ -45,6 +46,7 @@ Trama al servidor: `d=<epoch>,<valor %.3f>\r\n`; éxito si la respuesta contiene
 | Para… | Leer |
 | --- | --- |
 | Estado actual, notas, entregables hechos | `docs/ESTADO.md` |
+| Qué se hizo en cada sesión (historia, comandos, commits) | `docs/BITACORA.md` |
 | Por qué se decidió algo, alcance, objetivos | `docs/DECISIONES.md` |
 | Qué falta hacer | `docs/PENDIENTES.md` |
 | Firmware: compilar, flujo, particularidades, convenciones C | `Software/CLAUDE.md` |
