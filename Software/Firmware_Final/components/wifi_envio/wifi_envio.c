@@ -11,6 +11,7 @@
 #include "esp_log.h"
 #include <time.h>
 #include "nvs_flash.h"
+#include "lwip/sockets.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
@@ -32,6 +33,48 @@ static const char *TAG = "WIFI";
 static EventGroupHandle_t wifi_eventos;
 
 // ======================================================
+// REDES CONOCIDAS (WIFI_REDES en credenciales.h)
+// Al iniciar se usa la primera de la lista que aparezca en el escaneo
+// (orden = preferencia); si una falla 3 veces seguidas, la siguiente.
+// ======================================================
+
+#ifndef WIFI_REDES
+#define WIFI_REDES { { WIFI_SSID, WIFI_CLAVE } }   // formato viejo: una sola red
+#endif
+
+typedef struct
+{
+    const char *ssid;
+    const char *clave;
+} wifi_red_t;
+
+static const wifi_red_t redes[] = WIFI_REDES;
+
+#define N_REDES                 ((int)(sizeof(redes) / sizeof(redes[0])))
+#define FALLOS_PARA_CAMBIAR_RED 3
+#define MAX_APS_ESCANEO         32
+
+static int red_actual = 0;
+static int fallos_seguidos = 0;
+
+static void wifi_usar_red(int i)
+{
+    wifi_config_t wifi_config = { 0 };
+
+    strncpy((char *)wifi_config.sta.ssid, redes[i].ssid, sizeof(wifi_config.sta.ssid));
+    strncpy((char *)wifi_config.sta.password, redes[i].clave, sizeof(wifi_config.sta.password));
+    wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;   // WPA2 o superior
+    wifi_config.sta.pmf_cfg.capable = true;                    // PMF si el router lo pide
+    wifi_config.sta.pmf_cfg.required = false;
+    wifi_config.sta.sae_pwe_h2e = WPA3_SAE_PWE_BOTH;           // WPA3 (SAE)
+
+    esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
+    red_actual = i;
+
+    ESP_LOGI(TAG, "Conectando a \"%s\" (red %d de %d)...", redes[i].ssid, i + 1, N_REDES);
+}
+
+// ======================================================
 // EVENTOS WIFI / IP
 // Reconecta siempre: si se cae la red, los datos quedan en
 // temp.csv y la tarea de pendientes los reenvia al volver.
@@ -48,7 +91,15 @@ static void wifi_evento(void *arg, esp_event_base_t base, int32_t id, void *data
         wifi_event_sta_disconnected_t *ev = (wifi_event_sta_disconnected_t *)data;
 
         xEventGroupClearBits(wifi_eventos, WIFI_CONECTADO_BIT);
-        ESP_LOGW(TAG, "WiFi desconectado (motivo %d). Reintentando...", ev->reason);
+        ESP_LOGW(TAG, "WiFi desconectado de \"%s\" (motivo %d). Reintentando...",
+                 redes[red_actual].ssid, ev->reason);
+
+        if (N_REDES > 1 && ++fallos_seguidos >= FALLOS_PARA_CAMBIAR_RED)
+        {
+            fallos_seguidos = 0;
+            wifi_usar_red((red_actual + 1) % N_REDES);
+        }
+
         esp_wifi_connect();
     }
     else if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP)
@@ -57,11 +108,12 @@ static void wifi_evento(void *arg, esp_event_base_t base, int32_t id, void *data
         wifi_ap_record_t ap;
 
         xEventGroupSetBits(wifi_eventos, WIFI_CONECTADO_BIT);
+        fallos_seguidos = 0;
 
         if (esp_wifi_sta_get_ap_info(&ap) == ESP_OK)
         {
-            ESP_LOGI(TAG, "Conectado. IP " IPSTR " | RSSI %d dBm",
-                     IP2STR(&ev->ip_info.ip), ap.rssi);
+            ESP_LOGI(TAG, "Conectado a \"%s\". IP " IPSTR " | RSSI %d dBm",
+                     (const char *)ap.ssid, IP2STR(&ev->ip_info.ip), ap.rssi);
         }
         else
         {
@@ -90,33 +142,51 @@ static const char *wifi_nombre_auth(wifi_auth_mode_t m)
     }
 }
 
-static void wifi_escanear_red(void)
+static int wifi_elegir_red(void)
 {
-    wifi_scan_config_t scan = {
-        .ssid = (uint8_t *)WIFI_SSID,
-        .show_hidden = false,
-    };
+    static wifi_ap_record_t aps[MAX_APS_ESCANEO];
+    wifi_scan_config_t scan = { .show_hidden = false };
 
     if (esp_wifi_scan_start(&scan, true) != ESP_OK)
     {
-        ESP_LOGW(TAG, "No se pudo escanear");
-        return;
+        ESP_LOGW(TAG, "No se pudo escanear. Se prueba \"%s\"", redes[0].ssid);
+        return 0;
     }
 
-    uint16_t n = 1;
-    wifi_ap_record_t ap;
+    uint16_t n = MAX_APS_ESCANEO;
 
-    if (esp_wifi_scan_get_ap_records(&n, &ap) != ESP_OK || n == 0)
+    if (esp_wifi_scan_get_ap_records(&n, aps) != ESP_OK)
     {
-        ESP_LOGW(TAG, "La red \"%s\" no aparece en el escaneo", WIFI_SSID);
-        return;
+        n = 0;
     }
 
-    ESP_LOGI(TAG, "Red \"%s\": seguridad %s (%d) | canal %d | RSSI %d dBm",
-             WIFI_SSID, wifi_nombre_auth(ap.authmode), ap.authmode,
-             ap.primary, ap.rssi);
+    int elegida = -1;
+
+    for (int i = 0; i < N_REDES; i++)
+    {
+        for (int k = 0; k < n; k++)
+        {
+            if (strcmp((const char *)aps[k].ssid, redes[i].ssid) != 0) continue;
+
+            ESP_LOGI(TAG, "Red \"%s\": seguridad %s (%d) | canal %d | RSSI %d dBm",
+                     redes[i].ssid, wifi_nombre_auth(aps[k].authmode), aps[k].authmode,
+                     aps[k].primary, aps[k].rssi);
+
+            if (elegida < 0) elegida = i;   // la primera de la lista que aparece
+            break;   // los AP vienen ordenados por senal: el primero es el mejor
+        }
+    }
 
     esp_wifi_clear_ap_list();
+
+    if (elegida < 0)
+    {
+        ESP_LOGW(TAG, "Ninguna red conocida aparece en el escaneo. Se prueba \"%s\"",
+                 redes[0].ssid);
+        return 0;
+    }
+
+    return elegida;
 }
 
 // ======================================================
@@ -147,22 +217,10 @@ void wifi_init(void)
     ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, wifi_evento, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, wifi_evento, NULL));
 
-    wifi_config_t wifi_config = { 0 };
-
-    strncpy((char *)wifi_config.sta.ssid, WIFI_SSID, sizeof(wifi_config.sta.ssid));
-    strncpy((char *)wifi_config.sta.password, WIFI_CLAVE, sizeof(wifi_config.sta.password));
-    wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;   // WPA2 o superior
-    wifi_config.sta.pmf_cfg.capable = true;                    // PMF si el router lo pide
-    wifi_config.sta.pmf_cfg.required = false;
-    wifi_config.sta.sae_pwe_h2e = WPA3_SAE_PWE_BOTH;           // WPA3 (SAE)
-
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    wifi_escanear_red();
-
-    ESP_LOGI(TAG, "Conectando a \"%s\"...", WIFI_SSID);
+    wifi_usar_red(wifi_elegir_red());
     esp_wifi_connect();
 
     // No bloquea para siempre: si no hay red, el sistema mide igual
@@ -302,6 +360,58 @@ bool wifi_send_level(uint32_t timestamp, float level_m)
     esp_http_client_cleanup(cliente);
 
     return ok;
+}
+
+// ======================================================
+// ENVIO A LA PC POR UDP
+// Lectura completa (con velocidad) para la PC del equipo.
+// El servidor PHP sigue recibiendo solo d=<epoch>,<distancia>.
+// ======================================================
+
+bool wifi_send_pc(const char *linea)
+{
+#ifndef PC_IP
+    (void)linea;
+    return false;   // envio a la PC desactivado en credenciales.h
+#else
+    if (linea == NULL || !wifi_conectado()) return false;
+
+    struct sockaddr_in destino = {
+        .sin_family = AF_INET,
+        .sin_port   = htons(PC_PUERTO),
+    };
+
+    if (inet_pton(AF_INET, PC_IP, &destino.sin_addr) != 1)
+    {
+        ESP_LOGE(TAG, "PC_IP invalida: %s", PC_IP);
+        return false;
+    }
+
+    int s = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+
+    if (s < 0)
+    {
+        ESP_LOGW(TAG, "No se pudo crear el socket UDP");
+        return false;
+    }
+
+    // Permite PC_IP = "255.255.255.255": llega a cualquier PC de la red
+    int si = 1;
+    setsockopt(s, SOL_SOCKET, SO_BROADCAST, &si, sizeof(si));
+
+    int n = sendto(s, linea, strlen(linea), 0,
+                   (struct sockaddr *)&destino, sizeof(destino));
+    close(s);
+
+    if (n < 0)
+    {
+        ESP_LOGW(TAG, "Fallo el envio UDP a la PC");
+        return false;
+    }
+
+    ESP_LOGI(TAG, "Enviado a la PC (%s:%d): %s", PC_IP, PC_PUERTO, linea);
+    return true;
+#endif
 }
 
 // ======================================================

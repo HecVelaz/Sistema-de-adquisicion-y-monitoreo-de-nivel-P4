@@ -20,6 +20,11 @@ bool wifi_send_level(
     float level_m
 );
 
+// Envia una linea de texto por UDP a la PC (PC_IP:PC_PUERTO en credenciales.h).
+// No espera respuesta ni reintenta: la SD guarda todo igual.
+// false si no hay WiFi, si PC_IP no esta definida o si fallo el envio.
+bool wifi_send_pc(const char *linea);
+
 // Hora UTC por NTP (necesita WiFi). false si no se pudo sincronizar.
 bool wifi_hora_utc(uint32_t *utc);
 

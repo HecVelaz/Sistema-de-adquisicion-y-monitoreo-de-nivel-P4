@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <time.h>
+#include <math.h>
 #include "esp_log.h"
 #include "nvs.h"
 #include "freertos/FreeRTOS.h"
@@ -87,6 +88,28 @@ static uint32_t id_siguiente(void)
     nvs_close(h);
     id_ram = id;
     return id;
+}
+
+// ======================================================
+// LECTURA COMPLETA A LA PC (UDP)
+// Mismo formato que datos.csv: epoch,id,distancia_m,velocidad_ms,senal_db,estado
+// (campo vacio si no hay dato). La velocidad NO va al PHP: solo aqui y en la SD.
+// ======================================================
+
+static void enviar_a_pc(uint32_t epoch, uint32_t id,
+                        const sensor_lectura_t *l, sensor_estado_t estado)
+{
+    char dist[16] = "", vel[16] = "", senal[12] = "";
+
+    if (!isnan(l->distancia_m))  snprintf(dist, sizeof(dist), "%.3f", l->distancia_m);
+    if (!isnan(l->velocidad_ms)) snprintf(vel, sizeof(vel), "%.3f", l->velocidad_ms);
+    if (l->senal_db >= 0)        snprintf(senal, sizeof(senal), "%d", l->senal_db);
+
+    char linea[96];
+    snprintf(linea, sizeof(linea), "%lu,%lu,%s,%s,%s,%d",
+             (unsigned long)epoch, (unsigned long)id, dist, vel, senal, (int)estado);
+
+    wifi_send_pc(linea);
 }
 
 // ======================================================
@@ -194,12 +217,13 @@ static void task_pendientes(void *pv)
 void app_main(void)
 {
 #ifdef MODO_BANCO
-    // Modo banco: solo lee el radar cada 2 s y lo muestra en el monitor.
-    // No usa RTC, SD ni WiFi: no guarda ni envia nada.
+    // Modo banco: lee el radar cada 2 s, lo muestra en el monitor y lo
+    // manda a la PC por UDP (epoch 0: no usa RTC). No usa SD ni el PHP.
     // Compilar con: PLATFORMIO_BUILD_FLAGS=-DMODO_BANCO pio run -t upload
-    ESP_LOGW(TAG, "MODO BANCO: lectura cada 2 s, sin guardar ni enviar");
+    ESP_LOGW(TAG, "MODO BANCO: lectura cada 2 s a la PC, sin SD ni servidor");
 
     sensor_rs485_init();
+    wifi_init();
 
     uint32_t n = 0;
     sensor_lectura_t lectura;
@@ -214,6 +238,8 @@ void app_main(void)
         {
             ESP_LOGW(TAG, "Lectura %lu: sin dato valido (estado %d)", (unsigned long)n, estado);
         }
+
+        enviar_a_pc(0, n, &lectura, estado);
 
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
@@ -314,6 +340,9 @@ void app_main(void)
         // Guardar SIEMPRE la medicion completa en datos.csv
         sdcard_guardar_medicion(timestamp, id, lectura.distancia_m,
                                 lectura.velocidad_ms, lectura.senal_db, estado);
+
+        // Lectura completa (con velocidad) a la PC; al PHP solo la distancia
+        enviar_a_pc(timestamp, id, &lectura, estado);
 
         // Enviar SIEMPRE el dato actual primero
         if (!envio_level_main(timestamp, nivel_m))

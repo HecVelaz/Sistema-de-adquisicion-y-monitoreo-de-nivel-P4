@@ -15,3 +15,6 @@ documentos/Reportes/P4_1erParcial/latex_respuesta_evaluacion/main.pdf
 
 # Capturas de phpMyAdmin: muestran la IP del servidor (no subir)
 documentos/Reportes/P4_2doParcial/Fotos/captura_servidor/
+
+# Lecturas recibidas en la PC por UDP (Software/receptor_pc)
+lecturas_pc.csv
