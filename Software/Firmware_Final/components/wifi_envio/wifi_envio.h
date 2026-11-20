@@ -25,6 +25,11 @@ bool wifi_send_level(
 // false si no hay WiFi, si PC_IP no esta definida o si fallo el envio.
 bool wifi_send_pc(const char *linea);
 
+// Envia la misma linea a GitHub (repository_dispatch, evento "lectura") para
+// la pagina de monitoreo. Necesita GITHUB_REPO y GITHUB_TOKEN en credenciales.h;
+// si faltan, no hace nada. Bloquea hasta WIFI_TIMEOUT_HTTP_MS. Sin reintento.
+bool wifi_send_github(const char *linea);
+
 // Hora UTC por NTP (necesita WiFi). false si no se pudo sincronizar.
 bool wifi_hora_utc(uint32_t *utc);
 

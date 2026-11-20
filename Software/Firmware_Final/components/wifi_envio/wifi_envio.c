@@ -12,6 +12,7 @@
 #include <time.h>
 #include "nvs_flash.h"
 #include "lwip/sockets.h"
+#include "esp_crt_bundle.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
@@ -411,6 +412,83 @@ bool wifi_send_pc(const char *linea)
 
     ESP_LOGI(TAG, "Enviado a la PC (%s:%d): %s", PC_IP, PC_PUERTO, linea);
     return true;
+#endif
+}
+
+// ======================================================
+// ENVIO A GITHUB (PAGINA DE MONITOREO)
+// POST https://api.github.com/repos/<GITHUB_REPO>/dispatches
+// El Action .github/workflows/lectura.yml agrega la linea a datos.json
+// (rama "datos") y la pagina la muestra. Exito = HTTP 204.
+// ======================================================
+
+bool wifi_send_github(const char *linea)
+{
+#if !defined(GITHUB_REPO) || !defined(GITHUB_TOKEN)
+    (void)linea;
+    return false;   // pagina desactivada en credenciales.h
+#else
+    if (linea == NULL || !wifi_conectado()) return false;
+
+    char url[160];
+    snprintf(url, sizeof(url), "https://api.github.com/repos/%s/dispatches", GITHUB_REPO);
+
+    char cuerpo[192];
+    snprintf(cuerpo, sizeof(cuerpo),
+             "{\"event_type\":\"lectura\",\"client_payload\":{\"linea\":\"%s\"}}",
+             linea);
+
+    esp_http_client_config_t config = {
+        .url               = url,
+        .method            = HTTP_METHOD_POST,
+        .timeout_ms        = WIFI_TIMEOUT_HTTP_MS,
+        .crt_bundle_attach = esp_crt_bundle_attach,   // certificados raiz incluidos
+        .buffer_size_tx    = 1024,                    // el token va en la cabecera
+    };
+
+    esp_http_client_handle_t cliente = esp_http_client_init(&config);
+
+    if (cliente == NULL)
+    {
+        ESP_LOGW(TAG, "GitHub: no se pudo crear el cliente HTTPS");
+        return false;
+    }
+
+    esp_http_client_set_header(cliente, "Accept", "application/vnd.github+json");
+    esp_http_client_set_header(cliente, "Authorization", "Bearer " GITHUB_TOKEN);
+    esp_http_client_set_header(cliente, "X-GitHub-Api-Version", "2022-11-28");
+    esp_http_client_set_header(cliente, "User-Agent", "estacion-nivel-esp32");
+    esp_http_client_set_header(cliente, "Content-Type", "application/json");
+    esp_http_client_set_post_field(cliente, cuerpo, strlen(cuerpo));
+
+    bool ok = false;
+    esp_err_t err = esp_http_client_perform(cliente);
+
+    if (err != ESP_OK)
+    {
+        ESP_LOGW(TAG, "GitHub: fallo HTTPS (%s)", esp_err_to_name(err));
+    }
+    else
+    {
+        int estado = esp_http_client_get_status_code(cliente);
+        ok = (estado == 204);
+
+        if (ok)
+        {
+            ESP_LOGI(TAG, "GitHub: lectura enviada a la pagina");
+        }
+        else if (estado == 401 || estado == 403 || estado == 404)
+        {
+            ESP_LOGE(TAG, "GitHub: HTTP %d (token invalido, vencido o sin permiso Contents)", estado);
+        }
+        else
+        {
+            ESP_LOGW(TAG, "GitHub: HTTP %d", estado);
+        }
+    }
+
+    esp_http_client_cleanup(cliente);
+    return ok;
 #endif
 }
 

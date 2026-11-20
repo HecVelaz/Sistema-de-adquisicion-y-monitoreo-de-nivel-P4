@@ -24,4 +24,9 @@
 #define PC_IP     "255.255.255.255"
 #define PC_PUERTO 5005
 
+// Pagina de monitoreo (GitHub Pages). Token "fine-grained" limitado a este
+// repo con permiso Contents: Read and write. Comentar para desactivar.
+#define GITHUB_REPO  "usuario/repositorio"
+#define GITHUB_TOKEN "github_pat_..."
+
 #endif

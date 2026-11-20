@@ -91,13 +91,13 @@ static uint32_t id_siguiente(void)
 }
 
 // ======================================================
-// LECTURA COMPLETA A LA PC (UDP)
+// LECTURA COMPLETA (PC POR UDP Y PAGINA EN GITHUB)
 // Mismo formato que datos.csv: epoch,id,distancia_m,velocidad_ms,senal_db,estado
 // (campo vacio si no hay dato). La velocidad NO va al PHP: solo aqui y en la SD.
 // ======================================================
 
-static void enviar_a_pc(uint32_t epoch, uint32_t id,
-                        const sensor_lectura_t *l, sensor_estado_t estado)
+static void formatear_linea(char *linea, size_t tam, uint32_t epoch, uint32_t id,
+                            const sensor_lectura_t *l, sensor_estado_t estado)
 {
     char dist[16] = "", vel[16] = "", senal[12] = "";
 
@@ -105,11 +105,8 @@ static void enviar_a_pc(uint32_t epoch, uint32_t id,
     if (!isnan(l->velocidad_ms)) snprintf(vel, sizeof(vel), "%.3f", l->velocidad_ms);
     if (l->senal_db >= 0)        snprintf(senal, sizeof(senal), "%d", l->senal_db);
 
-    char linea[96];
-    snprintf(linea, sizeof(linea), "%lu,%lu,%s,%s,%s,%d",
+    snprintf(linea, tam, "%lu,%lu,%s,%s,%s,%d",
              (unsigned long)epoch, (unsigned long)id, dist, vel, senal, (int)estado);
-
-    wifi_send_pc(linea);
 }
 
 // ======================================================
@@ -239,7 +236,9 @@ void app_main(void)
             ESP_LOGW(TAG, "Lectura %lu: sin dato valido (estado %d)", (unsigned long)n, estado);
         }
 
-        enviar_a_pc(0, n, &lectura, estado);
+        char linea[96];
+        formatear_linea(linea, sizeof(linea), 0, n, &lectura, estado);
+        wifi_send_pc(linea);   // a GitHub no: seria un evento cada 2 s
 
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
@@ -342,7 +341,9 @@ void app_main(void)
                                 lectura.velocidad_ms, lectura.senal_db, estado);
 
         // Lectura completa (con velocidad) a la PC; al PHP solo la distancia
-        enviar_a_pc(timestamp, id, &lectura, estado);
+        char linea[96];
+        formatear_linea(linea, sizeof(linea), timestamp, id, &lectura, estado);
+        wifi_send_pc(linea);
 
         // Enviar SIEMPRE el dato actual primero
         if (!envio_level_main(timestamp, nivel_m))
@@ -350,6 +351,9 @@ void app_main(void)
             ESP_LOGW(TAG, "Fallo envio actual. Guardando pendiente");
             sdcard_append_pending(timestamp, nivel_m);
         }
+
+        // Despues del PHP (que tiene prioridad): la pagina de monitoreo
+        wifi_send_github(linea);
 
         ESP_LOGI(TAG,
                  "Ciclo terminado: id %lu | d=%lu,%.3f",

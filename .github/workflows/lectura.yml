@@ -1,0 +1,71 @@
+# Recibe cada lectura que manda la ESP32 (repository_dispatch "lectura")
+# y la agrega a datos.json en la rama "datos". La pagina lee ese archivo.
+# La rama tiene un solo commit que se reescribe cada vez (no crece el historial).
+#
+# Linea: epoch,id,distancia_m,velocidad_ms,senal_db,estado  (campo vacio = sin dato)
+
+name: Lectura de la estacion
+
+on:
+  repository_dispatch:
+    types: [lectura]
+
+permissions:
+  contents: write
+
+# Una a la vez para no pisar datos.json
+concurrency:
+  group: datos
+  cancel-in-progress: false
+
+jobs:
+  agregar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: datos
+
+      - name: Agregar la lectura a datos.json
+        env:
+          LINEA: ${{ github.event.client_payload.linea }}
+          DIAS: "30"
+        shell: python3 {0}
+        run: |
+          import json, os, re, time
+
+          linea = os.environ.get("LINEA", "").strip()
+          m = re.fullmatch(r"(\d{1,10}),(\d{1,10}),(-?\d+\.\d+)?,(-?\d+\.\d+)?,(\d{1,4})?,([0-3])", linea)
+          if not m:
+              raise SystemExit(f"Linea invalida: {linea!r}")
+
+          ep, id_, d, v, s, e = m.groups()
+          fila = [int(ep), int(id_),
+                  float(d) if d else None, float(v) if v else None,
+                  int(s) if s else None, int(e)]
+
+          try:
+              with open("datos.json") as f:
+                  lecturas = json.load(f)["lecturas"]
+          except FileNotFoundError:
+              lecturas = []
+
+          # sin duplicados (mismo epoch e id), en orden y solo los ultimos DIAS
+          lecturas = [r for r in lecturas if (r[0], r[1]) != (fila[0], fila[1])]
+          lecturas.append(fila)
+          lecturas.sort(key=lambda r: r[0])
+          limite = int(time.time()) - int(os.environ["DIAS"]) * 86400
+          lecturas = [r for r in lecturas if r[0] >= limite]
+
+          with open("datos.json", "w") as f:
+              json.dump({"actualizado": int(time.time()), "lecturas": lecturas}, f,
+                        separators=(",", ":"))
+          print(f"Agregada {fila}; {len(lecturas)} lecturas en datos.json")
+
+      - name: Guardar en la rama datos
+        run: |
+          git config user.name "estacion-nivel"
+          git config user.email "estacion-nivel@users.noreply.github.com"
+          git add datos.json
+          git commit --amend -q -m "Datos de la estacion"
+          git push -q --force origin HEAD:datos
