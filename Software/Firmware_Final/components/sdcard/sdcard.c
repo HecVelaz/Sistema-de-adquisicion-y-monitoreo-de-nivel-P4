@@ -2,9 +2,14 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 #include "esp_log.h"
 #include "esp_vfs_fat.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
 #include "driver/spi_common.h"
 #include "driver/sdspi_host.h"
@@ -15,6 +20,138 @@ static const char *TAG = "SDCARD";
 
 static sdmmc_card_t *card = NULL;
 static bool sd_mounted = false;
+
+// Main y task_pendientes tocan temp.csv: todo acceso a la SD pasa por aca
+static SemaphoreHandle_t sd_mutex = NULL;
+
+#define SD_MUTEX_TIMEOUT_MS 5000
+
+#define CABECERA_DATOS "epoch,id,distancia_m,velocidad_ms,senal_db,estado\n"
+#define CABECERA_TEMP  "Timestamp,nivel\n"
+
+// ======================================================
+// MUTEX
+// ======================================================
+
+static bool sd_tomar(void)
+{
+    if (!sd_mounted || sd_mutex == NULL)
+    {
+        return false;
+    }
+
+    if (xSemaphoreTake(sd_mutex, pdMS_TO_TICKS(SD_MUTEX_TIMEOUT_MS)) != pdTRUE)
+    {
+        ESP_LOGE(TAG, "SD ocupada: no se pudo tomar el mutex");
+        return false;
+    }
+
+    return true;
+}
+
+static void sd_soltar(void)
+{
+    xSemaphoreGive(sd_mutex);
+}
+
+// ======================================================
+// AUXILIARES (sin mutex: las llama quien ya lo tiene)
+// ======================================================
+
+static bool existe(const char *path)
+{
+    struct stat st;
+    return stat(path, &st) == 0;
+}
+
+// Cierra asegurando que los datos quedaron escritos en la tarjeta
+// (sin fsync, un corte de energia puede perder lo que estaba en el buffer)
+static bool cerrar_seguro(FILE *f)
+{
+    bool ok = (fflush(f) == 0);
+    ok = (fsync(fileno(f)) == 0) && ok;
+    ok = (fclose(f) == 0) && ok;
+    return ok;
+}
+
+static bool asegurar_cabecera(const char *path, const char *cabecera)
+{
+    if (existe(path))
+    {
+        return true;
+    }
+
+    FILE *f = fopen(path, "w");
+
+    if (f == NULL)
+    {
+        ESP_LOGE(TAG, "No se pudo crear %s", path);
+        return false;
+    }
+
+    fputs(cabecera, f);
+
+    if (!cerrar_seguro(f))
+    {
+        ESP_LOGE(TAG, "Error escribiendo cabecera de %s", path);
+        return false;
+    }
+
+    ESP_LOGI(TAG, "%s creado con cabecera", path);
+    return true;
+}
+
+static bool agregar_linea(const char *path, const char *linea)
+{
+    FILE *f = fopen(path, "a");
+
+    if (f == NULL)
+    {
+        ESP_LOGE(TAG, "No se pudo abrir %s", path);
+        return false;
+    }
+
+    fputs(linea, f);
+
+    if (!cerrar_seguro(f))
+    {
+        ESP_LOGE(TAG, "Error escribiendo en %s", path);
+        return false;
+    }
+
+    return true;
+}
+
+// ======================================================
+// RECUPERAR LA COLA TRAS UN CORTE DE ENERGIA
+// sdcard_remove_first_pending escribe temp_aux.csv completo (con fsync),
+// recien despues borra temp.csv y renombra aux -> temp. Si la energia se
+// corta en el medio:
+//   - aux y temp existen: temp esta intacto -> se descarta aux
+//   - solo aux existe:    aux esta completo -> se renombra a temp
+// ======================================================
+
+static void recuperar_cola(void)
+{
+    if (!existe(TEMP_AUX_FILE))
+    {
+        return;
+    }
+
+    if (existe(TEMP_QUEUE_FILE))
+    {
+        remove(TEMP_AUX_FILE);
+        ESP_LOGW(TAG, "Recuperacion: se descarto temp_aux.csv (temp.csv intacto)");
+    }
+    else if (rename(TEMP_AUX_FILE, TEMP_QUEUE_FILE) == 0)
+    {
+        ESP_LOGW(TAG, "Recuperacion: temp_aux.csv renombrado a temp.csv");
+    }
+    else
+    {
+        ESP_LOGE(TAG, "Recuperacion: no se pudo renombrar temp_aux.csv");
+    }
+}
 
 // ======================================================
 // DETECTAR TARJETA
@@ -30,64 +167,6 @@ bool detectar_tarjeta(void)
 }
 
 // ======================================================
-// CREAR CABECERA DATALOG
-// ======================================================
-
-static bool ensure_file_header(void)
-{
-    FILE *f = fopen(MAIN_LOG_FILE, "r");
-
-    if (f != NULL)
-    {
-        fclose(f);
-        return true;
-    }
-
-    f = fopen(MAIN_LOG_FILE, "w");
-
-    if (f == NULL)
-    {
-        ESP_LOGE(TAG, "No se pudo crear %s", MAIN_LOG_FILE);
-        return false;
-    }
-
-    fprintf(f, "Timestamp,nivel\n");
-    fclose(f);
-
-    ESP_LOGI(TAG, "datalog.csv creado con cabecera");
-    return true;
-}
-
-// ======================================================
-// CREAR CABECERA TEMP
-// ======================================================
-
-static bool ensure_temp_header(void)
-{
-    FILE *f = fopen(TEMP_QUEUE_FILE, "r");
-
-    if (f != NULL)
-    {
-        fclose(f);
-        return true;
-    }
-
-    f = fopen(TEMP_QUEUE_FILE, "w");
-
-    if (f == NULL)
-    {
-        ESP_LOGE(TAG, "No se pudo crear %s", TEMP_QUEUE_FILE);
-        return false;
-    }
-
-    fprintf(f, "Timestamp,nivel\n");
-    fclose(f);
-
-    ESP_LOGI(TAG, "temp.csv creado con cabecera");
-    return true;
-}
-
-// ======================================================
 // INICIALIZAR SD
 // ======================================================
 
@@ -96,6 +175,11 @@ bool sdcard_init(void)
     if (sd_mounted)
     {
         return true;
+    }
+
+    if (sd_mutex == NULL)
+    {
+        sd_mutex = xSemaphoreCreateMutex();
     }
 
     if (!detectar_tarjeta())
@@ -159,198 +243,163 @@ bool sdcard_init(void)
     ESP_LOGI(TAG, "SD montada correctamente");
     sdmmc_card_print_info(stdout, card);
 
-    if (!ensure_file_header())
+    if (!sd_tomar())
     {
         return false;
     }
 
-    if (!ensure_temp_header())
-    {
-        return false;
-    }
+    recuperar_cola();
 
-    return true;
+    bool ok = asegurar_cabecera(DATOS_FILE, CABECERA_DATOS) &&
+              asegurar_cabecera(TEMP_QUEUE_FILE, CABECERA_TEMP);
+
+    sd_soltar();
+
+    return ok;
 }
 
 // ======================================================
-// GUARDAR EN DATALOG
+// GUARDAR MEDICION COMPLETA EN datos.csv
 // ======================================================
 
-bool sdcard_append_level(uint32_t timestamp, float level_m)
+bool sdcard_guardar_medicion(uint32_t epoch, uint32_t id, float distancia_m,
+                             float velocidad_ms, int senal_db, int estado)
 {
-    if (!sd_mounted)
+    char dist[16] = "";
+    char vel[16]  = "";
+    char senal[12] = "";
+
+    if (!isnan(distancia_m))  snprintf(dist, sizeof(dist), "%.3f", distancia_m);
+    if (!isnan(velocidad_ms)) snprintf(vel, sizeof(vel), "%.3f", velocidad_ms);
+    if (senal_db >= 0)        snprintf(senal, sizeof(senal), "%d", senal_db);
+
+    char linea[96];
+    snprintf(linea, sizeof(linea), "%lu,%lu,%s,%s,%s,%d\n",
+             (unsigned long)epoch, (unsigned long)id, dist, vel, senal, estado);
+
+    if (!sd_tomar())
     {
-        ESP_LOGW(TAG, "SD no montada");
+        ESP_LOGW(TAG, "SD no disponible: no se guardo la medicion");
         return false;
     }
 
-    FILE *f = fopen(MAIN_LOG_FILE, "a");
+    bool ok = asegurar_cabecera(DATOS_FILE, CABECERA_DATOS) &&
+              agregar_linea(DATOS_FILE, linea);
 
-    if (f == NULL)
+    sd_soltar();
+
+    if (ok)
     {
-        ESP_LOGE(TAG, "No se pudo abrir datalog.csv");
-        return false;
+        ESP_LOGI(TAG, "Guardado SD: %.*s", (int)strlen(linea) - 1, linea);
     }
 
-    fprintf(f, "%lu,%.3f\n", (unsigned long)timestamp, level_m);
-    fclose(f);
-
-    ESP_LOGI(TAG, "Guardado SD: %lu,%.3f",
-             (unsigned long)timestamp,
-             level_m);
-
-    return true;
+    return ok;
 }
 
 // ======================================================
-// GUARDAR PENDIENTE EN TEMP
+// GUARDAR PENDIENTE EN temp.csv
 // ======================================================
 
 bool sdcard_append_pending(uint32_t timestamp, float level_m)
 {
-    if (!sd_mounted)
+    char linea[32];
+    snprintf(linea, sizeof(linea), "%lu,%.3f\n", (unsigned long)timestamp, level_m);
+
+    if (!sd_tomar())
     {
-        ESP_LOGW(TAG, "SD no montada");
+        ESP_LOGW(TAG, "SD no disponible: pendiente perdido %lu,%.3f",
+                 (unsigned long)timestamp, level_m);
         return false;
     }
 
-    if (!ensure_temp_header())
+    recuperar_cola();
+
+    bool ok = asegurar_cabecera(TEMP_QUEUE_FILE, CABECERA_TEMP) &&
+              agregar_linea(TEMP_QUEUE_FILE, linea);
+
+    sd_soltar();
+
+    if (ok)
     {
-        return false;
+        ESP_LOGW(TAG, "Guardado pendiente: %lu,%.3f", (unsigned long)timestamp, level_m);
     }
 
-    FILE *f = fopen(TEMP_QUEUE_FILE, "a");
-
-    if (f == NULL)
-    {
-        ESP_LOGE(TAG, "No se pudo abrir temp.csv");
-        return false;
-    }
-
-    fprintf(f, "%lu,%.3f\n", (unsigned long)timestamp, level_m);
-    fclose(f);
-
-    ESP_LOGW(TAG, "Guardado pendiente: %lu,%.3f",
-             (unsigned long)timestamp,
-             level_m);
-
-    return true;
+    return ok;
 }
 
 // ======================================================
-// VERIFICAR SI HAY PENDIENTES
-// ======================================================
-
-bool sdcard_has_pending(void)
-{
-    if (!sd_mounted)
-    {
-        return false;
-    }
-
-    if (!ensure_temp_header())
-    {
-        return false;
-    }
-
-    FILE *f = fopen(TEMP_QUEUE_FILE, "r");
-
-    if (f == NULL)
-    {
-        return false;
-    }
-
-    char line[128];
-
-    // Saltar cabecera
-    fgets(line, sizeof(line), f);
-
-    bool has_data = false;
-
-    while (fgets(line, sizeof(line), f))
-    {
-        if (strlen(line) > 3)
-        {
-            has_data = true;
-            break;
-        }
-    }
-
-    fclose(f);
-    return has_data;
-}
-
-// ======================================================
-// LEER PRIMER PENDIENTE FIFO
+// LEER PRIMER PENDIENTE FIFO (false si la cola esta vacia)
 // ======================================================
 
 bool sdcard_read_first_pending(uint32_t *timestamp, float *level_m)
 {
-    if (!sd_mounted || timestamp == NULL || level_m == NULL)
+    if (timestamp == NULL || level_m == NULL || !sd_tomar())
     {
         return false;
     }
 
-    if (!ensure_temp_header())
-    {
-        return false;
-    }
-
-    FILE *f = fopen(TEMP_QUEUE_FILE, "r");
-
-    if (f == NULL)
-    {
-        return false;
-    }
-
-    char line[128];
-
-    // Saltar cabecera
-    fgets(line, sizeof(line), f);
+    recuperar_cola();
 
     bool ok = false;
-    unsigned long ts_temp;
-    float level_temp;
+    FILE *f = fopen(TEMP_QUEUE_FILE, "r");
 
-    while (fgets(line, sizeof(line), f))
+    if (f != NULL)
     {
-        if (sscanf(line, "%lu,%f", &ts_temp, &level_temp) == 2)
+        char line[128];
+        unsigned long ts_temp;
+        float level_temp;
+
+        // Saltar cabecera
+        fgets(line, sizeof(line), f);
+
+        while (fgets(line, sizeof(line), f))
         {
-            *timestamp = (uint32_t)ts_temp;
-            *level_m = level_temp;
-            ok = true;
-            break;
+            if (sscanf(line, "%lu,%f", &ts_temp, &level_temp) == 2)
+            {
+                *timestamp = (uint32_t)ts_temp;
+                *level_m = level_temp;
+                ok = true;
+                break;
+            }
         }
+
+        fclose(f);
     }
 
-    fclose(f);
+    sd_soltar();
     return ok;
 }
 
 // ======================================================
 // ELIMINAR PRIMER PENDIENTE FIFO
+// Escritura segura: aux completo y sincronizado -> borrar temp -> renombrar.
+// Si se corta la energia en el medio, recuperar_cola() lo arregla al arrancar.
 // ======================================================
 
 bool sdcard_remove_first_pending(void)
 {
-    if (!sd_mounted)
+    if (!sd_tomar())
     {
         return false;
     }
 
+    recuperar_cola();
+
+    bool ok = false;
     FILE *src = fopen(TEMP_QUEUE_FILE, "r");
+    FILE *dst = NULL;
 
     if (src == NULL)
     {
-        return false;
+        goto fin;
     }
 
-    FILE *dst = fopen("/sdcard/temp_aux.csv", "w");
+    dst = fopen(TEMP_AUX_FILE, "w");
 
     if (dst == NULL)
     {
         fclose(src);
-        return false;
+        goto fin;
     }
 
     char line[128];
@@ -362,7 +411,7 @@ bool sdcard_remove_first_pending(void)
     }
     else
     {
-        fprintf(dst, "Timestamp,nivel\n");
+        fputs(CABECERA_TEMP, dst);
     }
 
     bool skipped = false;
@@ -379,17 +428,26 @@ bool sdcard_remove_first_pending(void)
     }
 
     fclose(src);
-    fclose(dst);
+
+    if (!cerrar_seguro(dst))
+    {
+        ESP_LOGE(TAG, "Error escribiendo temp_aux.csv; temp.csv sin cambios");
+        remove(TEMP_AUX_FILE);
+        goto fin;
+    }
 
     remove(TEMP_QUEUE_FILE);
 
-    if (rename("/sdcard/temp_aux.csv", TEMP_QUEUE_FILE) != 0)
+    if (rename(TEMP_AUX_FILE, TEMP_QUEUE_FILE) != 0)
     {
         ESP_LOGE(TAG, "No se pudo renombrar temp_aux.csv");
-        return false;
+        goto fin;
     }
 
+    ok = true;
     ESP_LOGI(TAG, "Primer pendiente eliminado");
 
-    return true;
+fin:
+    sd_soltar();
+    return ok;
 }

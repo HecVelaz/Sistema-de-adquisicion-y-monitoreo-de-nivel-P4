@@ -47,3 +47,17 @@ Electrónica (integración + consumo/autonomía), Firmware (Store and Forward co
 
 - Se lee solo la distancia `d` (`0x0001`); la señal (`0x0004`) solo se registra en el log hasta definir un umbral en el banco.
 - No se cambian parámetros del radar (calibración −46 mm, potencias) hasta medir en el banco con cinta métrica.
+
+## 2026-11-20
+
+### Trama, servidor y base de datos
+
+- **El script del servidor no se puede editar** (solo hay acceso a la BD) y acepta exactamente 2 campos. Por eso **la trama sigue siendo `d=<epoch>,<valor>`** y queda en suspenso la trama de 5 campos de 2026-10 hasta que el administrador suba un script nuevo.
+- Mientras tanto: **id, velocidad, señal y estado se guardan en la SD** (`datos.csv`). Perdidos y duplicados se verifican por la hora (los intervalos son fijos) y cruzando la SD con la BD.
+- **Estado en la BD con una columna generada** (no hay permiso para disparadores) y **caída de la estación con una vista** (> 15 min sin datos = 3 lecturas, como se prometió para la web).
+- **Sin índices `UNIQUE` en la tabla**: ante un repetido el script no respondería `OK` y la placa reintentaría el dato para siempre, bloqueando la cola.
+
+### Firmware
+
+- El intervalo de producción sigue en **5 min**; 1 min solo para pruebas, con la opción de compilación.
+- No se agrega OTA por ahora (requiere cambiar la tabla de particiones).

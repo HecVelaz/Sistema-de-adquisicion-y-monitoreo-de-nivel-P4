@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include "esp_log.h"
+#include "nvs.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
@@ -57,6 +58,36 @@ static bool sincronizar_rtc(void)
     return true;
 }
 
+// ======================================================
+// ID CORRELATIVO DE MEDICION (persistente en NVS)
+// Sobrevive a reinicios y cortes: un salto en el id = dato perdido.
+// La NVS la inicializa wifi_init().
+// ======================================================
+
+static uint32_t id_siguiente(void)
+{
+    static uint32_t id_ram = 0;   // respaldo si la NVS falla
+    uint32_t id = 0;
+    nvs_handle_t h;
+
+    if (nvs_open("medicion", NVS_READWRITE, &h) != ESP_OK)
+    {
+        ESP_LOGE(TAG, "NVS no disponible: id solo en RAM");
+        return ++id_ram;
+    }
+
+    nvs_get_u32(h, "id", &id);   // si no existe queda en 0
+    id++;
+
+    if (nvs_set_u32(h, "id", id) != ESP_OK || nvs_commit(h) != ESP_OK)
+    {
+        ESP_LOGE(TAG, "No se pudo guardar el id %lu en NVS", (unsigned long)id);
+    }
+
+    nvs_close(h);
+    id_ram = id;
+    return id;
+}
 
 // ======================================================
 // ENVIO WIFI PARA CICLO PRINCIPAL
@@ -111,51 +142,44 @@ static void task_pendientes(void *pv)
     while (1)
     {
         rtc_datetime_t dt;
+        uint32_t ts;
+        float nivel;
 
-        if (reloj_now(&dt))
+        // Solo con WiFi, lejos del proximo slot y si hay algo en la cola
+        if (reloj_now(&dt) &&
+            reloj_segundos_hasta_proximo_slot(&dt) > MARGEN_BG_SLOT_S &&
+            wifi_conectado() &&
+            sdcard_read_first_pending(&ts, &nivel))
         {
-            uint32_t espera_s = reloj_segundos_hasta_proximo_slot_5min(&dt);
-
-            if (espera_s > MARGEN_BG_SLOT_S)
+            if (ts < EPOCH_MINIMO)
             {
-                uint32_t ts;
-                float nivel;
-
-                if (sdcard_has_pending() &&
-                    sdcard_read_first_pending(&ts, &nivel) &&
-                    ts < EPOCH_MINIMO)
-                {
-                    // Dato guardado con el RTC sin hora (ano 2000): no se envia
-                    ESP_LOGW(TAG,
-                             "BG descarta pendiente con fecha invalida: d=%lu,%.3f",
-                             (unsigned long)ts,
-                             nivel);
-                    sdcard_remove_first_pending();
-                }
-                else if (sdcard_has_pending() &&
-                         sdcard_read_first_pending(&ts, &nivel))
-                {
-                    ESP_LOGI(TAG,
-                             "BG reenviando pendiente: d=%lu,%.3f",
-                             (unsigned long)ts,
-                             nivel);
-
-                    if (envio_level_bg(ts, nivel))
-                    {
-                        sdcard_remove_first_pending();
-                        ESP_LOGI(TAG, "BG pendiente enviado y eliminado");
-                    }
-                    else
-                    {
-                        ESP_LOGW(TAG, "BG fallo reenvio. Cola conservada");
-                    }
-                }
+                // Dato guardado con el RTC sin hora (ano 2000): no se envia
+                ESP_LOGW(TAG,
+                         "BG descarta pendiente con fecha invalida: d=%lu,%.3f",
+                         (unsigned long)ts,
+                         nivel);
+                sdcard_remove_first_pending();
             }
             else
             {
                 ESP_LOGI(TAG,
-                         "BG no envia: faltan %lu s para el proximo slot",
-                         (unsigned long)espera_s);
+                         "BG reenviando pendiente: d=%lu,%.3f",
+                         (unsigned long)ts,
+                         nivel);
+
+                if (!envio_level_bg(ts, nivel))
+                {
+                    ESP_LOGW(TAG, "BG fallo reenvio. Cola conservada");
+                }
+                else if (sdcard_remove_first_pending())
+                {
+                    ESP_LOGI(TAG, "BG pendiente enviado y eliminado");
+                }
+                else
+                {
+                    // Llego al servidor pero sigue en la cola: se reenviara (duplicado)
+                    ESP_LOGE(TAG, "BG enviado pero no se pudo sacar de la cola");
+                }
             }
         }
 
@@ -168,10 +192,33 @@ static void task_pendientes(void *pv)
 // ======================================================
 
 void app_main(void)
-{   
+{
+#ifdef MODO_BANCO
+    // Modo banco: solo lee el radar cada 2 s y lo muestra en el monitor.
+    // No usa RTC, SD ni WiFi: no guarda ni envia nada.
+    // Compilar con: PLATFORMIO_BUILD_FLAGS=-DMODO_BANCO pio run -t upload
+    ESP_LOGW(TAG, "MODO BANCO: lectura cada 2 s, sin guardar ni enviar");
 
+    sensor_rs485_init();
 
-    
+    uint32_t n = 0;
+    sensor_lectura_t lectura;
+
+    while (1)
+    {
+        n++;
+
+        sensor_estado_t estado = sensor_rs485_leer(&lectura);
+
+        if (estado != SENSOR_OK)
+        {
+            ESP_LOGW(TAG, "Lectura %lu: sin dato valido (estado %d)", (unsigned long)n, estado);
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    }
+#endif
+
     ESP_LOGI(TAG, "Iniciando sistema solo nivel...");
 
     reloj_init();
@@ -216,7 +263,7 @@ void app_main(void)
             continue;
         }
 
-        uint32_t espera_s = reloj_segundos_hasta_proximo_slot_5min(&dt);
+        uint32_t espera_s = reloj_segundos_hasta_proximo_slot(&dt);
 
         if (espera_s > 0)
         {
@@ -228,39 +275,45 @@ void app_main(void)
             continue;
         }
    
-        float nivel_m = 0.0f;
         uint32_t timestamp = reloj_datetime_to_epoch(&dt) + OFFSET_PY_S;
+        uint32_t id = id_siguiente();
 
         char fecha[32];
         reloj_format(&dt, fecha, sizeof(fecha));
 
-        ESP_LOGI(TAG, "Procesando slot RTC: %s", fecha);
+        ESP_LOGI(TAG, "Procesando slot RTC: %s | id %lu", fecha, (unsigned long)id);
 
-        bool lectura_ok = false;
+        sensor_lectura_t lectura;
+        sensor_estado_t estado = SENSOR_SIN_RESPUESTA;
 
         for (int intento = 1; intento <= 3; intento++)
         {
             ESP_LOGI(TAG, "Intento lectura sensor %d/3", intento);
 
-            if (sensor_rs485_read_level(&nivel_m))
+            estado = sensor_rs485_leer(&lectura);
+
+            if (estado == SENSOR_OK)
             {
                 led_blink_sensor_ok();
-                lectura_ok = true;
                 break;
             }
 
-            ESP_LOGW(TAG, "Fallo lectura sensor, reintentando...");
+            ESP_LOGW(TAG, "Fallo lectura sensor (estado %d), reintentando...", estado);
             vTaskDelay(pdMS_TO_TICKS(1000));
         }
 
-        if (!lectura_ok)
+        // Al servidor va la trama de siempre: d=<epoch>,<distancia>; -1 si fallo
+        float nivel_m = lectura.distancia_m;
+
+        if (estado != SENSOR_OK)
         {
-            ESP_LOGE(TAG, "No se pudo leer nivel luego de 3 intentos");
+            ESP_LOGE(TAG, "No se pudo leer nivel luego de 3 intentos (estado %d)", estado);
             nivel_m = -1.0f;
         }
 
-        // Guardar SIEMPRE en datalog.csv
-        sdcard_append_level(timestamp, nivel_m);
+        // Guardar SIEMPRE la medicion completa en datos.csv
+        sdcard_guardar_medicion(timestamp, id, lectura.distancia_m,
+                                lectura.velocidad_ms, lectura.senal_db, estado);
 
         // Enviar SIEMPRE el dato actual primero
         if (!envio_level_main(timestamp, nivel_m))
@@ -270,7 +323,8 @@ void app_main(void)
         }
 
         ESP_LOGI(TAG,
-                 "Ciclo terminado: d=%lu,%.3f",
+                 "Ciclo terminado: id %lu | d=%lu,%.3f",
+                 (unsigned long)id,
                  (unsigned long)timestamp,
                  nivel_m);
 

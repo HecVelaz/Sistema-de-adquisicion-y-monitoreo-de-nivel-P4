@@ -284,13 +284,13 @@ uint32_t reloj_datetime_to_epoch(
     return (uint32_t)mktime(&t);
 }
 
-uint32_t reloj_segundos_hasta_proximo_slot_5min(const rtc_datetime_t *dt)
+uint32_t reloj_segundos_hasta_proximo_slot(const rtc_datetime_t *dt)
 {
     uint32_t segundos_actuales;
 
     segundos_actuales = (dt->minute * 60) + dt->second;
 
-    uint32_t intervalo = 5 * 60;
+    uint32_t intervalo = INTERVALO_MEDICION_MIN * 60;
 
     uint32_t resto = segundos_actuales % intervalo;
 

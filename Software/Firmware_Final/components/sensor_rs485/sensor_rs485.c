@@ -1,6 +1,7 @@
 #include "sensor_rs485.h"
 
 #include <stdio.h>
+#include <math.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/uart.h"
@@ -29,6 +30,7 @@
 // Registros del radar
 #define REG_DISTANCIA       0x0001   // distancia radar -> agua, mm (filtrada)
 #define REG_SENAL           0x0004   // intensidad de senal, dB (>30 = buena)
+#define REG_VELOCIDAD       0x01F4   // velocidad filtrada, int32 BE con signo, x0,001 m/s (2 registros)
 
 // Fuera de rango del radar (0,1 - 40 m)
 #define DISTANCIA_MIN_MM    100
@@ -64,15 +66,15 @@ static uint16_t modbus_crc16(const uint8_t *data, int len)
 }
 
 // ======================================================
-// LECTURA DE UN REGISTRO (FUNCION 03, CANTIDAD 1)
+// LECTURA DE N REGISTROS (FUNCION 03, CANTIDAD 1 O 2)
 // ======================================================
 
-static bool sensor_rs485_leer_registro(uint16_t reg, uint16_t *valor)
+static sensor_estado_t sensor_rs485_leer_registros(uint16_t reg, uint8_t cant, uint16_t *valores)
 {
     uint8_t cmd[8] = {
         SENSOR_ADDR, 0x03,
         (uint8_t)(reg >> 8), (uint8_t)(reg & 0xFF),
-        0x00, 0x01,
+        0x00, cant,
         0x00, 0x00
     };
 
@@ -86,47 +88,51 @@ static bool sensor_rs485_leer_registro(uint16_t reg, uint16_t *valor)
     uart_write_bytes(SENSOR_UART_PORT, (const char *)cmd, sizeof(cmd));
     uart_wait_tx_done(SENSOR_UART_PORT, pdMS_TO_TICKS(100));
 
-    // Respuesta esperada: 01 03 02 HH LL CRCL CRCH (7 bytes)
-    uint8_t rx[7];
+    // Respuesta esperada: 01 03 <2*cant> <datos...> CRCL CRCH
+    uint8_t rx[9];
+    int esperado = 5 + 2 * cant;
 
     int len = uart_read_bytes(
         SENSOR_UART_PORT,
         rx,
-        sizeof(rx),
+        esperado,
         pdMS_TO_TICKS(SENSOR_TIMEOUT_MS)
     );
 
     if (len <= 0)
     {
         ESP_LOGW(TAG, "Sin respuesta del radar (reg 0x%04X)", reg);
-        return false;
+        return SENSOR_SIN_RESPUESTA;
     }
 
     if (len >= 5 && rx[0] == SENSOR_ADDR && rx[1] == 0x83)
     {
         ESP_LOGW(TAG, "Excepcion Modbus 0x%02X (reg 0x%04X)", rx[2], reg);
-        return false;
+        return SENSOR_RESPUESTA_INVALIDA;
     }
 
-    if (len != 7 || rx[0] != SENSOR_ADDR || rx[1] != 0x03 || rx[2] != 0x02)
+    if (len != esperado || rx[0] != SENSOR_ADDR || rx[1] != 0x03 || rx[2] != 2 * cant)
     {
         ESP_LOGW(TAG, "Respuesta inesperada (reg 0x%04X, %d bytes)", reg, len);
         ESP_LOG_BUFFER_HEX(TAG, rx, len);
-        return false;
+        return SENSOR_RESPUESTA_INVALIDA;
     }
 
-    uint16_t crc_rx = (uint16_t)rx[5] | ((uint16_t)rx[6] << 8);
+    uint16_t crc_rx = (uint16_t)rx[esperado - 2] | ((uint16_t)rx[esperado - 1] << 8);
 
-    if (crc_rx != modbus_crc16(rx, 5))
+    if (crc_rx != modbus_crc16(rx, esperado - 2))
     {
         ESP_LOGW(TAG, "CRC invalido (reg 0x%04X)", reg);
         ESP_LOG_BUFFER_HEX(TAG, rx, len);
-        return false;
+        return SENSOR_RESPUESTA_INVALIDA;
     }
 
-    *valor = ((uint16_t)rx[3] << 8) | rx[4];
+    for (int i = 0; i < cant; i++)
+    {
+        valores[i] = ((uint16_t)rx[3 + 2 * i] << 8) | rx[4 + 2 * i];
+    }
 
-    return true;
+    return SENSOR_OK;
 }
 
 // ======================================================
@@ -166,9 +172,9 @@ bool sensor_rs485_init(void)
     // Lectura de descarte
     // ==============================
 
-    float dummy;
+    sensor_lectura_t descarte;
 
-    sensor_rs485_read_level(&dummy);
+    sensor_rs485_leer(&descarte);
 
     vTaskDelay(pdMS_TO_TICKS(500));
 
@@ -176,39 +182,48 @@ bool sensor_rs485_init(void)
 }
 
 // ======================================================
-// LECTURA DE DISTANCIA (d, en metros)
+// LECTURA COMPLETA: DISTANCIA (d), SENAL Y VELOCIDAD
 // ======================================================
 
-bool sensor_rs485_read_level(float *level_m)
+sensor_estado_t sensor_rs485_leer(sensor_lectura_t *lectura)
 {
-    if (level_m == NULL) return false;
+    if (lectura == NULL) return SENSOR_RESPUESTA_INVALIDA;
 
-    uint16_t raw_mm;
+    lectura->distancia_m  = NAN;
+    lectura->velocidad_ms = NAN;
+    lectura->senal_db     = -1;
 
-    if (!sensor_rs485_leer_registro(REG_DISTANCIA, &raw_mm))
+    uint16_t v[2];
+
+    sensor_estado_t estado = sensor_rs485_leer_registros(REG_DISTANCIA, 1, v);
+
+    if (estado != SENSOR_OK)
     {
-        return false;
+        return estado;
     }
 
-    if (raw_mm < DISTANCIA_MIN_MM)
+    if (v[0] < DISTANCIA_MIN_MM)
     {
-        ESP_LOGW(TAG, "Distancia fuera de rango: %u mm", raw_mm);
-        return false;
+        ESP_LOGW(TAG, "Distancia fuera de rango: %u mm", v[0]);
+        return SENSOR_FUERA_DE_RANGO;
     }
 
-    *level_m = raw_mm / 1000.0f;
+    lectura->distancia_m = v[0] / 1000.0f;
 
-    // Senal solo informativa: no invalida la lectura
-    uint16_t senal_db;
-
-    if (sensor_rs485_leer_registro(REG_SENAL, &senal_db))
+    // Senal y velocidad: informativas, no invalidan la lectura
+    if (sensor_rs485_leer_registros(REG_SENAL, 1, v) == SENSOR_OK)
     {
-        ESP_LOGI(TAG, "Distancia: %.3f m | senal: %u dB", *level_m, senal_db);
-    }
-    else
-    {
-        ESP_LOGI(TAG, "Distancia: %.3f m", *level_m);
+        lectura->senal_db = v[0];
     }
 
-    return true;
+    if (sensor_rs485_leer_registros(REG_VELOCIDAD, 2, v) == SENSOR_OK)
+    {
+        int32_t mm_s = (int32_t)(((uint32_t)v[0] << 16) | v[1]);
+        lectura->velocidad_ms = mm_s / 1000.0f;
+    }
+
+    ESP_LOGI(TAG, "Distancia: %.3f m | senal: %d dB | velocidad: %.3f m/s",
+             lectura->distancia_m, lectura->senal_db, lectura->velocidad_ms);
+
+    return SENSOR_OK;
 }

@@ -12,3 +12,6 @@ documentos/Reportes/P4_1erParcial/latex_respuesta_evaluacion/*.aux
 documentos/Reportes/P4_1erParcial/latex_respuesta_evaluacion/*.log
 documentos/Reportes/P4_1erParcial/latex_respuesta_evaluacion/*.out
 documentos/Reportes/P4_1erParcial/latex_respuesta_evaluacion/main.pdf
+
+# Capturas de phpMyAdmin: muestran la IP del servidor (no subir)
+documentos/Reportes/P4_2doParcial/Fotos/captura_servidor/

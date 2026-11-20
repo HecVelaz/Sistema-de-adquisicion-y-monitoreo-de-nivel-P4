@@ -2,6 +2,56 @@
 
 Registro por fecha de lo hecho en cada sesión. El estado actual está en `docs/ESTADO.md`; lo que falta, en `docs/PENDIENTES.md`.
 
+## 2026-11-19/20 — Radar en la placa, corte de red, estado en la BD y firmware con id
+
+### Hecho
+
+- **Radar conectado a J3 y probado con el firmware**: respondió a la primera (115200, dirección 1, sin invertir A/B, sin errores de CRC). Registro `0x0001` confirmado como distancia: **0,197 m del radar contra ~19,7 cm con cinta** (una sola altura, sobre una superficie; falta el agua). Señal 15–18 dB apuntando a superficies (< 30). Velocidad (`0x01F4`) = 0,000 m/s.
+- **Consumo del radar: 126 mA a 12 V (~1,5 W)** medido en la fuente (ficha: 130/140/160 mA). La fuente de 12 V alimenta solo al radar; el ESP32 + WiFi toma de los 5 V del USB (para medirlo hace falta un medidor USB).
+- **Manuales releídos completos** (texto + páginas que son solo imagen). Datos nuevos: **no hay modo de reposo** (consume siempre ~130 mA); `0xEA60` devuelve `0x1A91` (= inicio del n.º de serie, identifica la unidad); calibración `0x07D8` en pasos de 1 mm; potencia de nivel `0x07D7` (0 máx., 7 mín.) y sensibilidad `0x07D9` escribibles por Modbus; filtro de 128 muestras (tarda en dar el primer dato). No hay registro de temperatura. El manual dice que los registros "están en decimal", pero las tramas de ejemplo son hexadecimales y son las que funcionaron.
+- **Datasheet oficial**: no hay uno publicado. El LDFM02 se vende con varias marcas (Shanghai JIANT en Alibaba, app "JET Radar Debugger"; ZLY TECH como ZLYLDFM02) y las páginas de revendedores no coinciden entre sí. Pedir al vendedor la versión exacta (serie y firmware V25 de la app).
+- **WiFi**: FIUNA RSSI −50 dBm; `LabEquiposMedicos` funciona con la clave corregida (RSSI −43 dBm).
+- **Corte de red n.º 1** (router apagado, intervalo de 1 min): WiFi caído 22:15:29 → 22:22:31; **7 pendientes (22:16–22:22), 7 reenviados en orden FIFO, 0 perdidos, 0 duplicados** (confirmado en la BD); cola vacía 1 min 36 s después de volver el WiFi. El dato de las 22:09 falta porque la placa se estaba cargando: cada reinicio o recarga cuesta un intervalo (no es pérdida del Store and Forward).
+- **Servidor**: el equipo solo tiene acceso a la BD, no a los scripts. El script de inserción acepta **exactamente 2 campos** en `d=` y hace un `INSERT` simple: la trama nueva no se puede usar sin que el administrador suba otro script (ver `docs/DECISIONES.md`).
+- **BD**: respaldo local de la tabla antes de tocarla (fuera del repo). Sin permiso para crear disparadores, se agregó una **columna generada `estado`** (`FALLA_SENSOR` si nivel < 0, `RECUPERADO` si llegó > 120 s tarde, si no `OK`) y una **vista `Masi_estado_estacion`** (`EN LINEA` / `CAIDA` si pasan > 15 min sin datos). Funcionan.
+- **Firmware** (`Software/Firmware_Final`):
+  - `sensor_rs485_leer()`: distancia + señal + **velocidad** y **estado** (0 OK, 1 sin respuesta, 2 respuesta inválida, 3 fuera de rango); lectura genérica de 1 o 2 registros.
+  - `sdcard`: **mutex** en todas las funciones, `fflush` + `fsync`, quitar pendiente con `temp_aux.csv` + `recuperar_cola()` (al montar y antes de cada operación de cola). Archivo nuevo **`datos.csv`**: `epoch,id,distancia_m,velocidad_ms,senal_db,estado`. `datalog.csv` ya no se escribe.
+  - **id correlativo en NVS** (`medicion`/`id`), comprobado: siguió en 2 tras un reinicio.
+  - `task_pendientes` no reintenta sin WiFi (`wifi_conectado()`); se sacó el log "BG no envia" cada 5 s.
+  - Intervalo configurable `INTERVALO_MEDICION_MIN` (5 por defecto) y **modo banco** `-DMODO_BANCO` (lee cada 2 s, sin guardar ni enviar).
+  - La trama al servidor no cambia (`d=<epoch>,<distancia>`, `-1` si falla). Probado en placa a 5 min: `Guardado SD: 1795144800,2,0.864,0.000,18,0` + `HTTP 200 OK`.
+- **Placa dejada midiendo** a 5 min con otra fuente (sin notebook) desde el 20/11 ~00:30.
+- `.gitignore`: carpeta `P4_2doParcial/Fotos/captura_servidor/` (las capturas del servidor muestran datos que no van al repo público).
+
+### Problemas y lecciones
+
+- Leer el puerto USB-JTAG con pyserial cambiando DTR/RTS deja al ESP32-S3 en **modo descarga** (`waiting for download`). Solución: `esptool.py --chip esp32s3 -p /dev/ttyACM0 --after hard_reset chip_id` y abrir el puerto con los valores por defecto, sin tocar DTR/RTS. Si el puerto queda abierto durante el reinicio, la placa vuelve como `/dev/ttyACM1`.
+- `pkill -f` / `pgrep -f` con un patrón que aparece en el mismo comando mata la propia shell: buscar el PID con `ps -eo pid,args | grep "[p]ython.*captura.py"`.
+- Datos de banco en la tabla de la estación (no son del arroyo): 19/11 desde las 19:55 (cada 1 min de 21:41 a 00:14) y desde el 20/11 00:15 a 5 min.
+
+### Comandos útiles
+
+```bash
+cd Software/Firmware_Final
+PLATFORMIO_BUILD_FLAGS=-DMODO_BANCO ~/.platformio/penv/bin/pio run -t upload               # radar cada 2 s
+PLATFORMIO_BUILD_FLAGS=-DINTERVALO_MEDICION_MIN=1 ~/.platformio/penv/bin/pio run -t upload  # 1 min
+~/.platformio/penv/bin/pio run -t upload                                                    # producción (5 min)
+```
+
+```sql
+SELECT * FROM Masi_estado_estacion;  -- EN LINEA / CAIDA
+-- duplicados
+SELECT timestamp, COUNT(*) v FROM Masi WHERE timestamp >= '...' GROUP BY timestamp HAVING v > 1;
+-- huecos (intervalo 5 min)
+SELECT COUNT(*) recibidos, FLOOR(TIMESTAMPDIFF(MINUTE, MIN(timestamp), MAX(timestamp))/5)+1 esperados
+  FROM Masi WHERE timestamp >= '...';
+```
+
+### Commits
+
+- Commit de cierre de esta sesión: firmware con id, velocidad, estado y SD segura; modo banco; intervalo configurable.
+
 ## 2026-11-19 — Radar FM02B, WiFi y guía de conexión
 
 ### Hecho

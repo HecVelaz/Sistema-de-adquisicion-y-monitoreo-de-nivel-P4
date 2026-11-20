@@ -56,7 +56,14 @@ void reloj_format(
 uint32_t reloj_datetime_to_epoch(
     const rtc_datetime_t *dt
 );
-uint32_t reloj_segundos_hasta_proximo_slot_5min(
+// Intervalo de medicion en minutos (debe dividir a 60). Produccion: 5.
+// Para pruebas se puede cambiar al compilar:
+//   PLATFORMIO_BUILD_FLAGS=-DINTERVALO_MEDICION_MIN=1 pio run -t upload
+#ifndef INTERVALO_MEDICION_MIN
+#define INTERVALO_MEDICION_MIN 5
+#endif
+
+uint32_t reloj_segundos_hasta_proximo_slot(
     const rtc_datetime_t *dt
 );
 #endif

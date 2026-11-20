@@ -181,6 +181,17 @@ void wifi_init(void)
 }
 
 // ======================================================
+// ESTADO DE LA CONEXION
+// ======================================================
+
+bool wifi_conectado(void)
+{
+    if (wifi_eventos == NULL) return false;
+
+    return (xEventGroupGetBits(wifi_eventos) & WIFI_CONECTADO_BIT) != 0;
+}
+
+// ======================================================
 // ENVIO AL SERVIDOR
 // Trama "d=<epoch>,<valor %.3f>"; exito si HTTP 200 y "OK".
 // ======================================================

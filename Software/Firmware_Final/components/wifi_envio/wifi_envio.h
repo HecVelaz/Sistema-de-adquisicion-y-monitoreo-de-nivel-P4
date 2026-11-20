@@ -12,6 +12,9 @@
 
 void wifi_init(void);
 
+// true si hay conexion WiFi en este momento (no espera)
+bool wifi_conectado(void);
+
 bool wifi_send_level(
     uint32_t timestamp,
     float level_m
