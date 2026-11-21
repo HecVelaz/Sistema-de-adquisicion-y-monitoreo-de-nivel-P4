@@ -1,0 +1,62 @@
+% Diagrama en bloques del sistema (2.o parcial): radar FM02B y dos modos de envío
+\begin{tikzpicture}[
+    bloque/.style={draw=gray!60!black, fill=white, rounded corners=3pt, align=center,
+        font=\small, minimum height=0.95cm, inner sep=4pt},
+    placa/.style={bloque, fill=agua!8, draw=agua!70!black},
+    ext/.style={bloque, fill=radar!8, draw=radar!80!black},
+    opc/.style={bloque, fill=gray!8, dashed},
+    pot/.style={-{Stealth}, very thick, red!70!black},
+    dat/.style={{Stealth}-{Stealth}, thick, radar!80!black},
+    lbl/.style={font=\scriptsize, fill=white, inner sep=1.5pt}
+]
+    % ---------------- PCB ----------------
+    \node[placa, minimum width=2.8cm, minimum height=1.3cm] (esp) at (0,0) {\textbf{ESP32-S3}\\WROOM-1 (N16R8)};
+    \node[placa, minimum width=2.2cm] (rtc) at (-4.2,1.6) {RTC\\DS3231M};
+    \node[placa, minimum width=2.2cm] (sd)  at (-4.2,0)   {microSD};
+    \node[placa, minimum width=2.2cm] (led) at (-4.2,-1.6) {LED azul\\GPIO21};
+    \node[placa, minimum width=2.0cm] (ams) at (0,2.1) {AMS1117\\3,3 V};
+    \node[placa, minimum width=2.3cm] (t1) at (4.0,0.8)  {SP3485 \#1\\(J3)};
+    \node[placa, minimum width=2.3cm] (t2) at (4.0,-1.0) {SP3485 \#2\\(J8)};
+
+    \begin{scope}[on background layer]
+        \node[draw=agua!70!black, rounded corners=6pt, fill=agua!3, inner sep=8pt,
+              fit=(rtc)(sd)(led)(ams)(t1)(t2)(esp),
+              label={[font=\small\bfseries, text=agua!60!black, anchor=north west]south west:PCB V3 (diseño propio, 2 capas)}] (pcb) {};
+    \end{scope}
+
+    \draw[dat] (rtc.east) -- node[lbl, above] {I2C} (esp.155);
+    \draw[dat] (sd.east)  -- node[lbl, above] {SPI} (esp.west);
+    \draw[-{Stealth}, thick, radar!80!black] (esp.205) -- node[lbl, below] {GPIO} (led.east);
+    \draw[dat] (esp.15)   -- node[lbl, above, pos=0.45] {UART1} (t1.west);
+    \draw[dat] (esp.-15)  -- node[lbl, below, pos=0.45] {UART2} (t2.west);
+    \draw[pot] (ams.south) -- (esp.north);
+
+    % ---------------- Externos ----------------
+    \node[ext, minimum width=3.2cm] (radar) at (8.6,0.8) {\textbf{Radar FM02B}\\nivel 80 GHz\\velocidad 24 GHz};
+    \node[opc, minimum width=3.2cm] (dtu) at (8.6,-1.0) {Módem DTU GPRS\\USR-IOT\\{\scriptsize (modo módem)}};
+    \draw[dat] (t1.east) -- node[lbl, above] {RS485} node[lbl, below] {Modbus RTU} (radar.west);
+    \draw[dat, dashed] (t2.east) -- node[lbl, above] {RS485} (dtu.west);
+
+    \node[ext, minimum width=2.6cm] (ups) at (-4.2,4.1) {\textbf{Mini UPS}\\Marsriva KP1 Ultra};
+    \draw[pot] (ups.east) -| node[lbl, pos=0.25, above] {5 V (J9 / J4)} (ams.north);
+    \draw[pot] (ups.north) -- ++(0,0.5) -| node[lbl, pos=0.25, above] {12 V (J2) $\to$ J3-1 / J8-1} (radar.north);
+    \draw[pot, dashed] (radar.north) ++(0,0.65) -- ++(1.9,0) |- (dtu.east);
+
+    % WiFi
+    \node[ext, minimum width=2.6cm] (wifi) at (3.6,-4.0) {Router WiFi\\2,4 GHz};
+    \draw[dat] (esp.south) ++(0.4,0) |- node[lbl, pos=0.75, above] {WiFi (antena)} (wifi.west);
+
+    % Servidor
+    \node[bloque, minimum width=3.4cm] (srv) at (8.6,-4.0) {\textbf{Servidor}\\script PHP + base de datos};
+    \draw[-{Stealth}, thick] (wifi.east) -- node[lbl, above] {HTTP} (srv.west);
+    \draw[-{Stealth}, thick, dashed] (dtu.south) -- node[lbl, right] {GPRS} (srv.north);
+
+    \node[bloque, minimum width=3.4cm, fill=gray!5] (vis) at (8.6,-5.8) {Grafana / web propia};
+    \draw[-{Stealth}, thick] (srv.south) -- (vis.north);
+
+    % Leyenda
+    \node[anchor=west, font=\scriptsize, align=left] at (-5.4,-5.6) {%
+        \tikz\draw[pot] (0,0) -- (0.6,0); alimentación \quad
+        \tikz\draw[dat] (0,0) -- (0.6,0); datos \quad
+        \tikz\draw[thick, dashed] (0,0) -- (0.6,0); modo módem};
+\end{tikzpicture}

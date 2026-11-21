@@ -1,0 +1,27 @@
+% Corte de red n.o 1 (19/11/2026, intervalo de 1 min): línea de tiempo
+% Escala: 1 min = 1.15 cm, origen 22:14:00
+\begin{tikzpicture}[x=1.15cm,
+    rot/.style={font=\scriptsize, align=center}]
+    % WiFi caído: 22:15:29 -> 22:22:31
+    \fill[red!12] (1.483,-0.35) rectangle (8.517,0.35);
+    \node[rot, text=red!60!black] at (5,0.6) {WiFi caído (router apagado) -- 7 min 2 s};
+    % Vaciado de la cola: 22:22:31 -> 22:24:07
+    \fill[agua!25] (8.517,-0.35) rectangle (10.117,0.35);
+    \node[rot, text=agua!50!black, anchor=west] at (8.5,-0.95) {reenvío FIFO: 1 min 36 s};
+
+    \draw[-{Stealth}, thick] (0,0) -- (11,0);
+    \foreach \m in {0,...,10} {
+        \pgfmathtruncatemacro{\mm}{14+\m}
+        \draw (\m,-0.08) -- (\m,0.08);
+        \node[rot, below] at (\m,-0.4) {22:\mm};
+    }
+    % Mediciones
+    \foreach \m in {0,1,9,10} \fill[agua!70!black] (\m,0) circle (3pt);
+    \foreach \m in {2,...,8} {
+        \fill[red!70!black] (\m,0) circle (3pt);
+    }
+    \node[rot, text=red!60!black] at (5,-1.45) {7 mediciones (22:16 a 22:22) $\to$ \texttt{temp.csv}};
+    \node[rot, anchor=west] at (0,1.15) {%
+        \tikz\fill[agua!70!black] (0,0) circle (3pt); enviada en el momento \quad
+        \tikz\fill[red!70!black] (0,0) circle (3pt); guardada como pendiente};
+\end{tikzpicture}

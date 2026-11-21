@@ -1,0 +1,25 @@
+% Trama al servidor y registro completo en la microSD
+\begin{tikzpicture}[
+    campo/.style={draw=gray!70, fill=white, minimum height=0.65cm, inner sep=3pt, font=\footnotesize\ttfamily},
+    nuevo/.style={campo, draw=radar, fill=radar!10},
+    nota/.style={font=\scriptsize, text=gray!60!black, align=center}
+]
+    \node[anchor=west, font=\small\bfseries] at (0,0.9) {Al servidor (sin cambios, WiFi o módem)};
+    \node[campo, anchor=west] (a1) at (0,0) {d=};
+    \node[campo, right=0pt of a1] (a2) {epoch UTC};
+    \node[campo, right=0pt of a2] (a3) {distancia (m)};
+    \node[nota, right=8pt of a3] {ej.: \texttt{d=1795144800,0.864}\\$-1$ si el radar falla};
+
+    \node[anchor=west, font=\small\bfseries] at (0,-1.6) {En la microSD: \texttt{datos.csv} (nuevo)};
+    \node[campo, anchor=west] (b1) at (0,-2.5) {epoch};
+    \node[nuevo, right=0pt of b1] (b2) {id};
+    \node[campo, right=0pt of b2] (b3) {distancia\_m};
+    \node[nuevo, right=0pt of b3] (b4) {velocidad\_ms};
+    \node[nuevo, right=0pt of b4] (b5) {senal\_db};
+    \node[nuevo, right=0pt of b5] (b6) {estado};
+    \node[nota, below=3pt of b2] {correlativo\\(NVS)};
+    \node[nota, below=3pt of b4] {reg.\\\texttt{0x01F4}};
+    \node[nota, below=3pt of b5] {reg.\\\texttt{0x0004}};
+    \node[nota, right=6pt of b6] {0 OK, 1 sin respuesta,\\2 inválida, 3 fuera de rango};
+    \node[nota, anchor=west, font=\footnotesize] at (0,-4.15) {ej.: \texttt{1795144800,2,0.864,0.000,18,0}};
+\end{tikzpicture}

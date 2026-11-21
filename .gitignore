@@ -15,6 +15,17 @@ documentos/Reportes/P4_1erParcial/latex_respuesta_evaluacion/main.pdf
 
 # Capturas de phpMyAdmin: muestran la IP del servidor (no subir)
 documentos/Reportes/P4_2doParcial/Fotos/captura_servidor/
+documentos/Reportes/P4_2doParcial/latex_informe_2P/*.aux
+documentos/Reportes/P4_2doParcial/latex_informe_2P/*.log
+documentos/Reportes/P4_2doParcial/latex_informe_2P/*.out
+documentos/Reportes/P4_2doParcial/latex_informe_2P/*.toc
+documentos/Reportes/P4_2doParcial/latex_informe_2P/main.pdf
 
 # Lecturas recibidas en la PC por UDP (Software/receptor_pc)
 lecturas_pc.csv
+lecturas_radar_pc.csv
+
+# Software del módem: Gm3Cfg.ini guarda la IP del servidor (no subir).
+# Los manuales ya versionados de Software/Moden/ siguen versionados.
+Software/Moden/
+Software/Moden.rar

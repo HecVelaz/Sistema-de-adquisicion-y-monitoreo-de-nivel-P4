@@ -1,0 +1,67 @@
+% Arranque y ciclo principal del firmware (2.o parcial)
+\begin{tikzpicture}[
+    node distance=0.42cm,
+    paso/.style={draw=gray!60!black, fill=white, rounded corners=2pt, align=center,
+        font=\footnotesize, text width=4.1cm, minimum height=0.7cm, inner sep=3pt},
+    nuevo/.style={paso, draw=radar!80!black, fill=radar!8},
+    dec/.style={diamond, aspect=2.4, draw=gray!60!black, fill=gray!8, align=center,
+        font=\footnotesize, inner sep=0.5pt},
+    ini/.style={paso, rounded corners=8pt, fill=agua!15, draw=agua!70!black, font=\footnotesize\bfseries},
+    lado/.style={paso, text width=3.0cm},
+    flecha/.style={-{Stealth}, thick, gray!60!black},
+    si/.style={font=\scriptsize\bfseries, text=agua!60!black},
+    no/.style={font=\scriptsize\bfseries, text=red!70!black}
+]
+    % ---------- Arranque ----------
+    \node[ini] (a0) {INICIO};
+    \node[paso, below=of a0] (a1) {Inicializar RTC, microSD,\\radar (UART1 115200), WiFi, LED};
+    \node[paso, below=of a1] (a2) {Crear mutex de envío};
+    \node[nuevo, below=of a2] (a3) {Sincronizar RTC por NTP\\(si hay WiFi)};
+    \node[paso, below=of a3] (a4) {Crear tarea de pendientes\\en segundo plano};
+    \foreach \i/\j in {a0/a1,a1/a2,a2/a3,a3/a4} \draw[flecha] (\i) -- (\j);
+    \node[font=\small\bfseries, above=0.15cm of a0] {Arranque};
+
+    % ---------- Ciclo ----------
+    \begin{scope}[xshift=9.6cm]
+    \node[ini] (b0) {CICLO PRINCIPAL};
+    \node[paso, below=of b0] (b1) {Leer hora del RTC};
+    \node[dec, below=of b1] (b2) {¿Hora válida?\\(año $\geq$ 2025)};
+    \node[dec, below=of b2] (b3) {¿Llegó el\\turno de 5 min?};
+    \node[nuevo, below=of b3] (b4) {id = id + 1 (memoria NVS)};
+    \node[paso, below=of b4] (b5) {Leer radar: distancia, señal\\y velocidad (hasta 3 intentos)};
+    \node[dec, below=of b5] (b6) {¿Lectura OK?};
+    \node[nuevo, below=of b6] (b7) {Guardar en \texttt{datos.csv}:\\epoch, id, d, v, señal, estado};
+    \node[paso, below=of b7] (b8) {Enviar \texttt{d=epoch,valor}\\(WiFi o módem, con mutex)};
+    \node[dec, below=of b8] (b9) {¿Respuesta OK?};
+    \node[paso, below=of b9] (b10) {Fin del ciclo};
+
+    \node[lado, nuevo, left=0.9cm of b2] (n2) {No medir: reintentar NTP cada 60 s};
+    \node[lado, left=0.9cm of b3] (n3) {Esperar los segundos que faltan};
+    \node[lado, left=0.9cm of b6] (n6) {valor = $-1$, estado $\neq$ 0\\(LED apagado)};
+    \node[lado, right=0.9cm of b6] (s6) {Parpadeo del LED};
+    \node[lado, left=0.9cm of b9] (n9) {Guardar en \texttt{temp.csv}\\(pendiente)};
+
+    \foreach \i/\j in {b0/b1,b1/b2,b4/b5,b5/b6,b7/b8,b8/b9} \draw[flecha] (\i) -- (\j);
+    \draw[flecha] (b2) -- node[si, right] {sí} (b3);
+    \draw[flecha] (b3) -- node[si, right] {sí} (b4);
+    \draw[flecha] (b6) -- node[si, right, pos=0.4] {} (b7);
+    \draw[flecha] (b9) -- node[si, right] {sí} (b10);
+    \draw[flecha] (b2) -- node[no, above] {no} (n2);
+    \draw[flecha] (b3) -- node[no, above] {no} (n3);
+    \draw[flecha] (b6) -- node[no, above] {no} (n6);
+    \draw[flecha] (b6) -- node[si, above] {sí} (s6);
+    \draw[flecha] (b9) -- node[no, above] {no} (n9);
+    \draw[flecha] (n6) |- (b7.west);
+    \draw[flecha] (s6) |- (b7.east);
+    \draw[flecha] (n9) |- (b10.west);
+    \draw[flecha] (n2.north) |- ([yshift=0.15cm]b1.west);
+    \draw[flecha] (n3.west) -- ++(-0.3,0) |- ([yshift=-0.15cm]b1.west);
+    \draw[flecha] (b10.east) -- ++(2.4,0) |- (b1.east);
+    \end{scope}
+
+    % conexión arranque -> ciclo
+    \draw[flecha] (a4.east) -- ++(0.5,0) |- (b0.west);
+
+    % Leyenda
+    \node[nuevo, text width=2.4cm, below=1.2cm of a4] (ley) {nuevo en el\\2.\textsuperscript{o} parcial};
+\end{tikzpicture}

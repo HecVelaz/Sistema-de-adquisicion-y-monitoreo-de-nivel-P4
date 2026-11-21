@@ -29,7 +29,9 @@ Pasos y tablas para completar durante cada prueba del banco de laboratorio. Los 
 1. Radar en el soporte, antena hacia abajo, **nivelada con burbuja en los dos ejes**. Leer y anotar roll/pitch (`0x0009`/`0x000A`) como referencia (ver ensayo 6).
 2. Balde de ~30 cm de diámetro con agua, centrado bajo la antena. Distancia antena–agua **entre 0,1 m y ~1,2 m** (más lejos, el haz de 14° toca las paredes).
 3. Sin metal, ventiladores ni aire acondicionado cerca del haz.
-4. Firmware en **modo banco** (`PLATFORMIO_BUILD_FLAGS=-DMODO_BANCO pio run -t upload`): una lectura cada 2 s en el receptor de la PC.
+4. Lecturas cada 2 s, de una de estas dos formas:
+   - **Firmware en modo banco** (`PLATFORMIO_BUILD_FLAGS=-DMODO_BANCO pio run -t upload`, necesita el USB de la placa): las lecturas llegan al receptor de la PC (`lecturas_pc.csv`).
+   - **Radar directo a la PC con el adaptador USB–RS485**, sin la placa: verde → A, amarillo → B, negro → GND, radar con sus 12 V. Probar con `python3 Software/receptor_pc/leer_radar_pc.py --prueba` y medir con `python3 Software/receptor_pc/leer_radar_pc.py` (guarda `lecturas_radar_pc.csv`; usar `--archivo lecturas_radar_pc.csv` en `exactitud.py`). Mide la exactitud del radar; la cadena placa → SD → envío se valida en los otros ensayos. Mientras el radar está en el adaptador, la placa envía `-1`: desenchufarla si no se quieren esos datos en la BD.
 5. Referencia de la cinta: medir desde la **cara inferior de la antena** hasta la superficie del agua, en el centro del balde. Anotar desde dónde se midió (el radar mide desde su propio plano de referencia y tiene una calibración de −46 mm).
 
 **Procedimiento (por cada altura)**

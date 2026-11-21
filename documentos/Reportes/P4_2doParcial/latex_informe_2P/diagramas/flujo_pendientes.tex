@@ -1,0 +1,42 @@
+% Tarea de pendientes (Store and Forward) en segundo plano
+\begin{tikzpicture}[
+    node distance=0.42cm,
+    paso/.style={draw=gray!60!black, fill=white, rounded corners=2pt, align=center,
+        font=\footnotesize, text width=4.3cm, minimum height=0.7cm, inner sep=3pt},
+    nuevo/.style={paso, draw=radar!80!black, fill=radar!8},
+    dec/.style={diamond, aspect=2.6, draw=gray!60!black, fill=gray!8, align=center,
+        font=\footnotesize, inner sep=0.5pt},
+    ini/.style={paso, rounded corners=8pt, fill=agua!15, draw=agua!70!black, font=\footnotesize\bfseries},
+    lado/.style={paso, text width=3.1cm},
+    flecha/.style={-{Stealth}, thick, gray!60!black},
+    si/.style={font=\scriptsize\bfseries, text=agua!60!black},
+    no/.style={font=\scriptsize\bfseries, text=red!70!black}
+]
+    \node[ini, text width=5.6cm] (c0) {TAREA DE PENDIENTES (cada 5 s)};
+    \node[dec, below=of c0] (c1) {¿Faltan $>$ 35 s\\para el próximo turno?};
+    \node[dec, below=of c1, fill=radar!8, draw=radar!80!black] (c2) {¿Hay conexión?};
+    \node[dec, below=of c2] (c3) {¿Hay datos en\\\texttt{temp.csv}?};
+    \node[dec, below=of c3, fill=radar!8, draw=radar!80!black] (c4) {¿Fecha válida?};
+    \node[paso, below=of c4] (c5) {Reenviar el primero (FIFO)\\\texttt{d=epoch,valor}, con mutex};
+    \node[dec, below=of c5] (c6) {¿Respuesta OK?};
+    \node[nuevo, below=of c6] (c7) {Quitarlo de la cola\\(copia \texttt{temp\_aux.csv} + \texttt{fsync})};
+
+    \node[lado, right=1.0cm of c2] (esp) {Esperar 5 s y volver};
+    \node[lado, nuevo, left=1.0cm of c4] (desc) {Descartar\\(dato con fecha del año 2000)};
+    \node[lado, right=1.0cm of c6] (cons) {Conservar en la cola};
+
+    \foreach \i/\j in {c0/c1,c5/c6} \draw[flecha] (\i) -- (\j);
+    \draw[flecha] (c1) -- node[si, right] {sí} (c2);
+    \draw[flecha] (c2) -- node[si, right] {sí} (c3);
+    \draw[flecha] (c3) -- node[si, right] {sí} (c4);
+    \draw[flecha] (c4) -- node[si, right] {sí} (c5);
+    \draw[flecha] (c6) -- node[si, right] {sí} (c7);
+    \draw[flecha] (c1.east) -| node[no, above, pos=0.2] {no} (esp.north);
+    \draw[flecha] (c2) -- node[no, above] {no} (esp);
+    \draw[flecha] (c3.east) -| node[no, below, pos=0.2] {no} (esp.south);
+    \draw[flecha] (c4) -- node[no, above] {no} (desc);
+    \draw[flecha] (c6) -- node[no, above] {no} (cons);
+    \draw[flecha] (cons.east) -| ([xshift=1.0cm]esp.east);
+    \draw[flecha] (c7.east) -| ([xshift=1.0cm]esp.east) |- (esp.east);
+    \draw[flecha] (desc.south) |- (c7.west);
+\end{tikzpicture}

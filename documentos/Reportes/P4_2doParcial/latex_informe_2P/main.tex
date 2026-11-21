@@ -1,0 +1,1389 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{lmodern}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{needspace}
+\usepackage{pdfpages}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,babel,shapes.geometric,fit,backgrounds,calc}
+\usepackage[most]{tcolorbox}
+\definecolor{radar}{RGB}{37,99,235}
+\definecolor{agua}{RGB}{16,150,120}
+\definecolor{espera}{RGB}{217,119,6}
+\usepackage[hidelinks]{hyperref}
+
+\graphicspath{{figuras/}}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0pt}
+\renewcommand{\arraystretch}{1.3}
+\setlist{itemsep=2pt, topsep=2pt}
+
+% ------------------------------------------------------
+% Etiquetas de estado
+% ------------------------------------------------------
+\newcommand{\chip}[2]{\tikz[baseline=(c.base)]\node[fill=#1, text=white,
+    rounded corners=2pt, inner sep=2.5pt, font=\scriptsize\bfseries\sffamily] (c) {#2};}
+\newcommand{\REAL}{\chip{agua}{REALIZADO}}
+\newcommand{\CURSO}{\chip{radar}{EN CURSO}}
+\newcommand{\ESPERA}{\chip{espera}{EN ESPERA}}
+\newcommand{\FUERA}{\chip{gray}{FUERA DE ALCANCE}}
+
+% Dato que falta completar antes de entregar
+\newcommand{\completar}[1]{\textcolor{red}{\textbf{[#1]}}}
+
+% Recuadro de resultado
+\newtcolorbox{resultado}[1]{enhanced, colback=agua!6, colframe=agua!70!black,
+    boxrule=0.6pt, arc=3pt, left=7pt, right=7pt, top=4pt, bottom=4pt,
+    fonttitle=\bfseries\small, title={#1}}
+
+\newcommand{\seccion}[1]{\needspace{10\baselineskip}\section{#1}}
+
+\begin{document}
+
+% ======================================================
+% PORTADA
+% ======================================================
+\begin{titlepage}
+    \centering
+    {\large Universidad Nacional de Asunción\par}
+    {\large Facultad de Ingeniería\par}
+    {\large Carrera de Ingeniería Mecatrónica\par}
+    \vspace{1.2cm}
+    \includegraphics[width=0.32\textwidth]{logo_fiuna.png}\par
+    \vspace{1.2cm}
+    {\Large Proyecto 4\par}
+    {\Large Segundo Parcial\par}
+    \vspace{1.2cm}
+    {\LARGE\bfseries Sistema de adquisición y monitoreo\\de nivel de agua\par}
+    \vspace{0.6cm}
+    {\Large Informe de proceso\par}
+    \vfill
+    \begin{flushleft}
+        \textbf{Profesores:}\\
+        Prof. Ing. Federico Gaona, MSc.\\
+        Prof. Ing. Esteban Fretes\\[1em]
+        \textbf{Alumnos:}\\
+        \begin{tabular}{@{}ll}
+            Héctor Dejesús Velázquez Ojeda   & 5.011.166 \\
+            Mathias Ramón Aguilar DelValle   & 4.970.804 \\
+            Mauricio Iván Tullo Estigarribia & 3.782.101 \\
+        \end{tabular}
+    \end{flushleft}
+    \vspace{1cm}
+    {\large San Lorenzo, Paraguay\par}
+    {\large Noviembre de 2026\par}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ======================================================
+% 1. RESUMEN
+% ======================================================
+\section{Resumen ejecutivo}
+
+La estación mide el nivel del arroyo Mburicaó, guarda cada dato en una tarjeta
+microSD y lo envía a un servidor. En el primer parcial se presentó la base
+heredada de Proyecto~3 (PCB propia con ESP32-S3, RTC, microSD y módem GPRS) y el
+diseño mecánico; la evaluación pidió sobre todo \textbf{cuantificar}: exactitud
+de la medición y recuperación de datos ante cortes.
+
+Para este segundo parcial el sensor ultrasónico se reemplazó por un
+\textbf{radar Luda/POLIVIR FM02B}, que mide la distancia al agua con una antena
+de 80~GHz ($\pm$3~mm) y la velocidad superficial con otra de 24~GHz. Se escribió
+su driver Modbus RTU, se agregó un \textbf{identificador correlativo} y un
+\textbf{estado} a cada medición, se protegió la escritura en la microSD contra
+cortes y se sumó el \textbf{envío por WiFi} como segundo modo de comunicación
+junto al módem GPRS. El radar se montó con su kit comercial en un
+\textbf{banco de laboratorio} que simula la instalación: un perfil en voladizo
+sobre un balde con agua.
+
+Resultados principales: el radar respondió a la primera (115\,200 baudios,
+dirección 1, sin errores de CRC); su consumo es de \textbf{126~mA a 12~V
+($\approx$1,5~W)}; en el primer corte de red se recuperaron \textbf{7 de 7
+datos, sin perdidos ni duplicados}, en 1~min 36~s; y la estación funciona sola,
+enviando por WiFi cada 5 minutos, desde el 20 de noviembre. La medición de
+\textbf{velocidad} queda en espera: necesita agua en movimiento y el
+laboratorio no tiene un canal.
+
+\section{Abstract}
+
+The station measures the water level of the Mburicaó stream, stores every
+reading on a microSD card and sends it to a server. For this second partial
+submission the ultrasonic sensor was replaced by a \textbf{Luda/POLIVIR FM02B
+radar} that measures distance to the water (80~GHz, $\pm$3~mm) and surface
+velocity (24~GHz). A Modbus RTU driver was written, each reading now carries a
+sequential \textbf{id} and a \textbf{status} code, microSD writes were made
+power-loss tolerant, and \textbf{WiFi} was added as a second transmission mode
+alongside the GPRS modem. The radar was mounted with its commercial bracket on
+a \textbf{laboratory test bench} over a water bucket. The radar answered at the
+first attempt, draws \textbf{126~mA at 12~V}, and in the first network outage
+test \textbf{7 of 7 readings were recovered} with no losses or duplicates. The
+station has been running unattended since November 20. Velocity testing is on
+hold until an open channel with flowing water is available.
+
+% ======================================================
+% 2. RESPUESTA A LA EVALUACION
+% ======================================================
+\seccion{Seguimiento de la evaluación del primer parcial}
+
+En la respuesta a la evaluación detallada se marcaron los compromisos para
+este parcial. La tabla resume en qué quedó cada uno.
+
+\begin{center}
+    \REAL\ terminado \quad
+    \CURSO\ con avance medible \quad
+    \ESPERA\ depende de un recurso externo \quad
+    \FUERA\ justificado
+\end{center}
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Compromisos del primer parcial y su estado.}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.3cm}L>{\raggedright\arraybackslash}p{3.1cm}}
+        \toprule
+        \textbf{Compromiso} & \textbf{Qué se hizo} & \textbf{Estado} \\
+        \midrule
+        Objetivos medibles (5) & Se mantienen; cada uno tiene ahora su resultado
+            (sección~\ref{sec:objetivos}). & \REAL \\
+        Comparar alternativas de sensor & Tabla de tecnologías y motivo de
+            la elección (sección~\ref{sec:alternativas}). & \REAL \\
+        Datos técnicos del sensor & Especificaciones, conexión y registros
+            Modbus del FM02B (sección~\ref{sec:radar}). & \REAL \\
+        Firmware para el radar & Driver Modbus con CRC, estados de falla,
+            lectura de velocidad y modo banco. & \REAL \\
+        Id y estado por dato & Se guardan en la microSD. Al servidor sigue
+            yendo la trama de dos campos (sección~\ref{sec:trama}). & \REAL\ \CURSO \\
+        microSD tolerante a cortes & \emph{Mutex}, \texttt{fsync} y
+            recuperación de la cola al arrancar. & \REAL \\
+        Montaje del sensor en banco & Radar con su kit sobre un perfil en
+            voladizo, nivelado con burbuja. & \REAL \\
+        Exactitud ($\leq\pm$10 mm) & Comunicación y distancia verificadas;
+            ensayo con agua (sección~\ref{sec:exactitud}). & \CURSO \\
+        Cortes de red ($\geq$ 10) & 1 corte: 7/7 recuperados, 0 perdidos,
+            0 duplicados. & \CURSO \\
+        Cortes de energía ($\geq$ 10) & Firmware listo; falta el ensayo. & \CURSO \\
+        Consumo y autonomía & Radar: 126 mA a 12 V. Falta el ESP32 y la
+            descarga de la UPS. & \CURSO \\
+        Disponibilidad 7 días & Estación midiendo sola desde el 20/11. & \CURSO \\
+        Web propia & La base de datos ya marca el estado del dato y de la
+            estación; la web está en desarrollo. & \CURSO \\
+        Velocidad del agua & El firmware la lee; falta un canal con agua en
+            movimiento. & \ESPERA \\
+        Instalación en el arroyo & Depende del Departamento de Mecánica y
+            Energía. & \FUERA \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\textbf{Corrección.} En la respuesta a la evaluación escribimos que teníamos
+acceso al servidor para adaptarlo. En realidad el equipo tiene acceso solo a la
+\textbf{base de datos}: el script que recibe los datos lo administra el grupo
+de investigación, no se puede editar y acepta exactamente dos campos. Por eso
+la trama con id y estado se guarda por ahora en la microSD
+(sección~\ref{sec:trama}).
+
+% ======================================================
+% 3. ESTADO DEL ARTE
+% ======================================================
+\seccion{Estado del arte}
+
+\subsection{Monitoreo de nivel de agua y predicción}
+El monitoreo de nivel en cauces urbanos sirve para generar registros
+históricos, estudiar el comportamiento hidrológico y alimentar sistemas de
+alerta. En trabajos previos sobre el arroyo Mburicaó se abordó la predicción de
+niveles con aprendizaje automático, lo que muestra la necesidad de datos
+confiables y periódicos~\cite{aguilar}. Este proyecto se enfoca en la etapa
+física: una estación que mide, almacena y transmite el dato de forma
+automática. Los profesores del área de hidrología cuentan con otros sistemas de
+nivel que sirven de comparación.
+
+\subsection{ESP32-S3, ESP-IDF y PlatformIO}
+El ESP32-S3 tiene interfaces UART, SPI e I2C, WiFi de 2,4~GHz integrado y
+suficiente memoria para tareas concurrentes~\cite{esp32}. Se programa con el
+framework ESP-IDF (FreeRTOS, componentes y mutex)~\cite{espidf} desde
+PlatformIO~\cite{pio}.
+
+\subsection{Sensores de nivel sin contacto}
+Los sensores con salida RS485 toleran ruido eléctrico y cables largos, lo que
+permite separar el sensor de la electrónica~\cite{modbus}. Los
+\textbf{ultrasónicos} miden el tiempo de vuelo del sonido, que depende de la
+temperatura del aire, y tienen un haz ancho~\cite{ultrasonico}. Los
+\textbf{radares} de onda milimétrica (FMCW de 80~GHz) no dependen de la
+temperatura ni del viento y tienen un haz angosto; algunos modelos suman una
+segunda antena Doppler para medir la velocidad superficial del
+agua~\cite{fm02b_ficha}.
+
+\subsection{Reloj, almacenamiento y alimentación}
+El RTC DS3231M da la fecha y hora de cada medición por I2C~\cite{ds3231}. La
+microSD por SPI~\cite{microsd} guarda el historial y la cola de pendientes del
+mecanismo \emph{Store and Forward}. La mini UPS Marsriva entrega 12~V y
+5~V~\cite{ups}.
+
+\subsection{Comunicación remota: GPRS y WiFi}
+El módem DTU USR-IOT transmite por GPRS la trama que recibe por
+RS485~\cite{dtu}; sirve donde no hay otra red. Donde hay una red WiFi, el
+ESP32-S3 puede enviar el dato directamente por HTTP y tomar la hora por
+NTP~\cite{espidf}.
+
+% ======================================================
+% 4. DESCRIPCION Y OBJETIVOS
+% ======================================================
+\seccion{Descripción y objetivos}
+\label{sec:objetivos}
+
+La estación se instala sobre el arroyo, mide cada 5 minutos la distancia
+hasta la superficie del agua, guarda la medición con su fecha y hora, y la
+envía al servidor. Si el envío falla, el dato queda en una cola y se reenvía
+cuando vuelve la comunicación. El usuario final es la ciudadanía: los datos son
+abiertos.
+
+\textbf{Objetivo general.} Desarrollar una estación de adquisición y monitoreo
+de nivel de agua basada en ESP32-S3 que mida, almacene y transmita el dato sin
+perderlo ante cortes, con una exactitud medida en banco de laboratorio.
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Objetivos específicos, criterio de aceptación y resultado al segundo parcial.}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{1.9cm}LL>{\raggedright\arraybackslash}p{1.75cm}}
+        \toprule
+        \textbf{Área} & \textbf{Criterio de aceptación} & \textbf{Resultado} & \textbf{Estado} \\
+        \midrule
+        Electrónica & Integrar radar, RTC, microSD y comunicación; consumo
+            por módulo y autonomía medidos. & Radar integrado en J3; WiFi y
+            módem en la misma placa. Radar: 126 mA a 12 V. & \CURSO \\
+        Firmware & 0 perdidos y 0 duplicados en $\geq$ 10 cortes;
+            disponibilidad $\geq$ 95\,\% en 7 días. & Corte n.º 1: 7/7
+            recuperados, 0 perdidos, 0 duplicados. Funcionando sola desde el
+            20/11. & \CURSO \\
+        Montaje & Radar con su kit en banco; antena nivelada y haz libre. &
+            Montado sobre perfil en voladizo, nivelado con burbuja, haz dentro
+            del balde. & \REAL \\
+        Interfaz & Históricos, antigüedad del dato, estado del sensor y
+            alarma. & Estado del dato y de la estación ya calculados en la
+            base de datos. & \CURSO \\
+        Validación & Error $\leq\pm$10 mm frente a cinta métrica. & Ver
+            sección~\ref{sec:exactitud}. & \CURSO \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+% ======================================================
+% 5. ESQUEMA GENERAL
+% ======================================================
+\seccion{Esquema general del sistema}
+
+\subsection{Diagrama en bloques}
+
+La PCB es la misma de Proyecto~3. El radar ocupa el canal RS485 \#1 (bornera
+J3) que antes usaba el sensor ultrasónico, y el canal \#2 (J8) queda para el
+módem. Los 12~V de la UPS entran por J2 y van directo a las borneras; el ESP32
+se alimenta con 5~V por USB-C (J9) o por el jack J4.
+
+\begin{figure}[H]
+    \centering
+    \resizebox{\textwidth}{!}{\input{diagramas/bloques.tex}}
+    \caption{Arquitectura del sistema con el radar FM02B y los dos modos de envío.}
+\end{figure}
+
+\subsection{Modos de comunicación}
+
+La estación tiene dos caminos hacia el servidor. Los dos usan la misma trama,
+la misma cola \emph{Store and Forward} y el mismo mutex de envío; solo cambia
+el medio.
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Modo WiFi y modo módem.}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.6cm}LL}
+        \toprule
+        & \textbf{Modo WiFi} & \textbf{Modo módem GPRS} \\
+        \midrule
+        Hardware & Antena impresa del ESP32-S3 (2,4 GHz). & Módem DTU USR-IOT
+            en J8 (UART2: GPIO5/6, RTS GPIO7). \\
+        Envío & HTTP POST al script del servidor; éxito si responde
+            \texttt{OK}. & Trama serie a 115\,200; el módem la reenvía por
+            GPRS; éxito si responde \texttt{OK}. \\
+        Hora & NTP al arrancar, guardada en el RTC. & RTC DS3231M. \\
+        Dónde sirve & Sitio con red WiFi WPA2 (laboratorio, colegio). &
+            Sitio sin WiFi (orilla del arroyo). \\
+        Estado & \REAL\ probado con el radar; funcionando desde el 20/11. &
+            \CURSO\ validado en P3 durante 9 meses; se reintegra con el
+            radar. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection{Comunicaciones y pines}
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Interfaces, alimentación y pines del ESP32-S3.}
+    \footnotesize\setlength{\tabcolsep}{4pt}
+    \begin{tabular}{lllll}
+        \toprule
+        \textbf{Módulo} & \textbf{Interfaz} & \textbf{Pines (GPIO)} & \textbf{Alim.} & \textbf{Conector} \\
+        \midrule
+        Radar FM02B      & RS485 (UART1) & TX 1, RX 2, DE/RE 4 & 12 V & J3 \\
+        Módem DTU        & RS485 (UART2) & TX 5, RX 6, RTS 7 & 12 V & J8 \\
+        RTC DS3231M      & I2C & SDA 8, SCL 9 & 3,3 V & -- \\
+        microSD          & SPI & CS 10, MOSI 11, CLK 12, MISO 13, DET 15 & 3,3 V & -- \\
+        LED azul         & GPIO & 21 & 3,3 V & -- \\
+        Alimentación     & -- & -- & 12 V / 5 V & J2 / J9 o J4 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Product Breakdown Structure}
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Desglose del producto.}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.6cm}L}
+        \toprule
+        \textbf{Nivel principal} & \textbf{Componentes o entregables} \\
+        \midrule
+        Hardware electrónico & PCB V3, ESP32-S3, RTC, microSD, 2 transceptores
+            RS485, LED, conectores. \\
+        Sensado & Radar FM02B (nivel + velocidad), cable de 5 m con ficha de
+            aviación. \\
+        Comunicación remota & WiFi del ESP32-S3; módem DTU GPRS. \\
+        Almacenamiento & \texttt{datos.csv} (historial completo) y
+            \texttt{temp.csv} (pendientes). \\
+        Firmware & Programa principal y componentes \texttt{sensor\_rs485},
+            \texttt{wifi\_envio}, \texttt{modem\_dtu}, \texttt{reloj},
+            \texttt{sdcard}, \texttt{led}. \\
+        Alimentación & Mini UPS (12 V y 5 V), regulación a 3,3 V en la placa. \\
+        Mecánica & Kit de montaje del radar, banco de laboratorio, gabinete de
+            la electrónica. \\
+        Interfaz & Base de datos con estado, Grafana, web propia. \\
+        Documentación & Informes, guía de conexión del radar, repositorio,
+            fotos y videos de los ensayos. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+% ======================================================
+% 6. SENSOR
+% ======================================================
+\seccion{Selección del sensor}
+\label{sec:alternativas}
+
+\subsection{Comparación de alternativas}
+
+A fines de septiembre se compararon las tecnologías disponibles para medir
+nivel en un arroyo urbano. La condición principal era no tocar el agua: en una
+crecida el arroyo arrastra basura y sedimento, y un sensor sumergido se ensucia
+o se pierde.
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Tecnologías de medición de nivel consideradas.}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.7cm}>{\centering\arraybackslash}p{1.4cm}>{\centering\arraybackslash}p{1.5cm}L}
+        \toprule
+        \textbf{Tecnología} & \textbf{Contacto con el agua} & \textbf{Mide velocidad} & \textbf{Ventajas y limitaciones} \\
+        \midrule
+        Ultrasónico RS485 (usado en P3) & No & No & Económico. La velocidad del
+            sonido cambia con la temperatura; haz ancho; afectado por viento y
+            espuma. \\
+        Presión sumergible & Sí & No & Mide bien en aguas calmas. Se
+            ensucia con sedimento y puede perderse en una crecida. \\
+        Radar de nivel 80 GHz & No & No & Exactitud milimétrica, haz
+            angosto, no depende de la temperatura. \\
+        \textbf{Radar FM02B} (nivel + velocidad) & No & Sí & Lo anterior
+            más la \textbf{velocidad superficial} (24 GHz). Más caro: USD
+            690,41 + 64,80 de envío. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+Se eligió el \textbf{FM02B} porque, además de medir el nivel con exactitud de
+milímetros sin tocar el agua, entrega la velocidad superficial: un dato más
+para la predicción de crecidas y, a futuro, para estimar caudal.
+
+\subsection{Radar FM02B: datos técnicos}
+\label{sec:radar}
+
+El equipo es un radar integrado de nivel y velocidad, vendido como
+Luda/POLIVIR FM02B. Los documentos del fabricante lo llaman LDFM02\_B
+(ficha~\cite{fm02b_ficha}), con protocolo Modbus V3~\cite{fm02b_modbus} e
+instrucciones de montaje~\cite{fm02b_montaje}. Nuestra unidad tiene el número
+de serie \texttt{1a91000400000019} y firmware V25.
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Especificaciones del radar FM02B según la ficha del fabricante.}
+    \begin{tabular}{llll}
+        \toprule
+        \multicolumn{2}{l}{\textbf{Nivel (distancia)}} & \multicolumn{2}{l}{\textbf{Velocidad superficial}} \\
+        \midrule
+        Frecuencia      & 80 GHz       & Frecuencia      & 24 GHz \\
+        Rango           & 0,1--40 m    & Rango           & 0,05--20 m/s \\
+        Exactitud       & $\pm$3 mm    & Exactitud       & $\pm$0,01 m/s \\
+        Resolución      & 1 mm         & Resolución      & 0,01 m/s \\
+        Ángulo del haz  & 14°          & Ángulo del haz  & 12° \\
+                        &              & Sentido         & bidireccional \\
+        \midrule
+        \multicolumn{2}{l}{\textbf{Eléctricas}} & \multicolumn{2}{l}{\textbf{Generales}} \\
+        \midrule
+        Alimentación    & 9--24 V (12 V típ.) & Comunicación & RS485, Modbus RTU \\
+        Corriente       & 130--160 mA a 12 V  & Configuración & Bluetooth \\
+        Tensión mínima en bornes & 7 V        & Temperatura  & $-45$ a 85 °C \\
+        Modo de reposo  & no tiene            & Peso         & 0,8 kg \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[!htbp]
+    \centering
+    \begin{subfigure}[b]{0.36\textwidth}
+        \centering
+        \includegraphics[height=3.8cm]{radar_sensor.jpg}
+        \caption{Cuerpo del radar.}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.2\textwidth}
+        \centering
+        \includegraphics[height=3.8cm]{radar_conector_caja.jpg}
+        \caption{Conector.}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.2\textwidth}
+        \centering
+        \includegraphics[height=3.8cm]{radar_ficha.jpg}
+        \caption{Ficha.}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.2\textwidth}
+        \centering
+        \includegraphics[height=3.8cm,trim=0 0 500 0,clip]{radar_cables.jpg}
+        \caption{Hilos.}
+    \end{subfigure}
+    \caption{Radar FM02B: la antena de nivel mira hacia abajo y la cara
+    inclinada aloja la antena de velocidad.}
+\end{figure}
+
+\textbf{Huella del haz.} Con el radar a una altura $h$ sobre el agua, el haz de
+nivel ilumina una elipse de unos $0{,}25\,h \times 0{,}17\,h$ (haces de 14° y
+10°)~\cite{fm02b_montaje}. Si la elipse toca una pared, la lectura es falsa.
+En el banco, con un balde de 30~cm, eso limita la altura a
+$h \leq 1{,}2$~m; el haz de velocidad sale a 55° de la horizontal y necesita
+agua en movimiento.
+
+\begin{figure}[!htbp]
+    \centering
+    \resizebox{!}{6cm}{\input{diagramas/haz_balde.tex}}
+    \caption{Haz de 14° sobre un balde de 30 cm, con el radar a 1 m y a 2 m.}
+\end{figure}
+
+\subsection{Conexión a la PCB}
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Cableado del radar a la bornera J3.}
+    \begin{tabular}{llll}
+        \toprule
+        \textbf{Hilo} & \textbf{Pin aviación} & \textbf{Señal} & \textbf{Borne} \\
+        \midrule
+        Rojo     & 1 & +12 V (9--24 V) & J3-1 \\
+        Verde    & 3 & RS485 A         & J3-2 (A1) \\
+        Amarillo & 4 & RS485 B         & J3-3 (B1) \\
+        Negro    & 2 & GND             & J3-4 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+El canal de J3 ya tiene en la placa el transceptor SP3485 a 3,3~V,
+terminación de 120~$\Omega$, polarización de 4,7~k$\Omega$ y protección TVS
+SM712: no hubo que agregar nada.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth]{diagrama_conexion_radar.jpg}
+    \caption{Conexión del radar FM02B a la PCB V3 (de la guía de conexión
+    elaborada por el equipo).}
+\end{figure}
+
+\subsection{Configuración leída por Bluetooth}
+
+Antes de cablear se leyó la configuración del radar con la aplicación del
+fabricante (\emph{JET Radar Debugger}). La dirección y la velocidad
+coinciden con el firmware, así que no se cambió nada.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.19\textwidth]{app_3.jpg}\hfill
+    \includegraphics[width=0.19\textwidth]{app_2.jpg}\hfill
+    \includegraphics[width=0.19\textwidth]{app_4.jpg}\hfill
+    \includegraphics[width=0.19\textwidth]{app_0.jpg}\hfill
+    \includegraphics[width=0.19\textwidth]{app_1.jpg}
+    \caption{Capturas de la aplicación: tipo de equipo, lecturas, parámetros
+    básicos, de nivel y de velocidad.}
+\end{figure}
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Parámetros del radar leídos el 19/11/2026.}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.8cm}>{\raggedright\arraybackslash}p{2.6cm}L}
+        \toprule
+        \textbf{Parámetro} & \textbf{Valor} & \textbf{Comentario} \\
+        \midrule
+        Dirección / baudios & 1 / 115\,200 & Coinciden con el firmware. La
+            tabla del manual dice 9600 de fábrica: no aplica a esta unidad. \\
+        Rango de nivel & 40 m & El máximo. \\
+        Calibración & $-46$ mm & Corrimiento que el radar resta a la distancia.
+            Se ajusta solo si el ensayo con agua da un error constante. \\
+        Potencia de emisión de nivel & 7 & La mínima (0 es la máxima). \\
+        Sensibilidad de nivel & 5 & Menor valor = más sensible. \\
+        Velocidad & bidireccional, límite 5 m/s & Sin cambios. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection{Protocolo Modbus RTU}
+
+Formato 115\,200 8N1, dirección 1, función 03 (leer registros), CRC16 Modbus
+(polinomio \texttt{0xA001}). El firmware lee tres valores:
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Registros del radar usados por el firmware.}
+    \begin{tabular}{llll}
+        \toprule
+        \textbf{Registro} & \textbf{Dato} & \textbf{Trama de lectura} & \textbf{Formato} \\
+        \midrule
+        \texttt{0x0001} & Distancia radar--agua & \texttt{01 03 00 01 00 01 D5 CA} & uint16, mm \\
+        \texttt{0x0004} & Intensidad de señal & \texttt{01 03 00 04 00 01 C5 CB} & dB ($>$ 30 buena) \\
+        \texttt{0x01F4--F5} & Velocidad filtrada & \texttt{01 03 01 F4 00 02 84 05} & int32, $\times$0,001 m/s \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+La respuesta a la lectura de un registro tiene 7 bytes
+(\texttt{01 03 02 HH LL CRC CRC}). Otros registros útiles: \texttt{0x0009} y
+\texttt{0x000A} (inclinación en 0,1°, para comprobar que el radar no se movió),
+\texttt{0x07D8} (calibración), \texttt{0x07D7} (potencia) y \texttt{0x07D9}
+(sensibilidad).
+
+% ======================================================
+% 7. FIRMWARE
+% ======================================================
+\seccion{Firmware}
+
+El firmware se escribió en C con ESP-IDF~5.5 sobre PlatformIO y está
+organizado en componentes. Se conserva el esquema de Proyecto~3: un ciclo
+principal que mide en turnos fijos y una tarea en segundo plano que reenvía
+los pendientes. Lo nuevo se resume en la tabla.
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Cambios del firmware para el segundo parcial.}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.2cm}LL}
+        \toprule
+        \textbf{Tema} & \textbf{Antes (ultrasónico, P3)} & \textbf{Ahora (radar)} \\
+        \midrule
+        Sensor & 9600 baudios, registro \texttt{0x0000}, sin verificar el CRC. &
+            115\,200, registros \texttt{0x0001}, \texttt{0x0004} y
+            \texttt{0x01F4}; verifica CRC, dirección, función y largo. \\
+        Control DE/RE & Por software, con retardos. & Por hardware (UART en
+            modo RS485 \emph{half-duplex}). \\
+        Falla del sensor & Se enviaba $-1$ sin más datos. & Además, un
+            \textbf{estado}: sin respuesta, respuesta inválida o fuera de
+            rango ($<$ 0,1 m). \\
+        Identificación & El id lo ponía el servidor. & \textbf{id
+            correlativo} guardado en la memoria NVS: sobrevive a reinicios. \\
+        microSD & Dos tareas escribían sin protección. & \emph{Mutex},
+            \texttt{fflush} + \texttt{fsync} y recuperación de la cola tras un
+            corte. \\
+        Envío & Módem GPRS. & WiFi o módem GPRS. \\
+        Hora & Solo el RTC. & NTP al arrancar; sin hora válida no se mide. \\
+        Pruebas & -- & \textbf{Modo banco}: lee el radar cada 2 s y lo
+            muestra, sin guardar ni enviar. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection{Flujo del programa}
+
+\begin{figure}[!htbp]
+    \centering
+    \resizebox{0.98\textwidth}{!}{\input{diagramas/flujo_principal.tex}}
+    \caption{Arranque y ciclo principal. En azul, lo nuevo de este parcial.}
+\end{figure}
+
+Cuando el envío falla, el dato queda en \texttt{temp.csv}. La tarea de
+pendientes lo reenvía en orden (FIFO) y lo borra recién cuando el servidor
+confirma con \texttt{OK}. Para no chocar con el ciclo principal, solo trabaja
+si faltan más de 35~s para el próximo turno, y ya no intenta enviar si no hay
+conexión.
+
+\begin{figure}[!htbp]
+    \centering
+    \resizebox{0.78\textwidth}{!}{\input{diagramas/flujo_pendientes.tex}}
+    \caption{Tarea de pendientes (\emph{Store and Forward}).}
+\end{figure}
+
+\subsection{Trama y registro en la microSD}
+\label{sec:trama}
+
+En el primer parcial se propuso enviar al servidor la trama
+\begin{center}\texttt{d=<epoch>,<id>,<distancia>,<velocidad>,<estado>}\end{center}
+Como el script del
+servidor no se puede modificar y acepta solo dos campos, \textbf{al servidor
+sigue yendo la trama de siempre} y el registro completo se guarda en la
+microSD. Así, los perdidos y duplicados se verifican cruzando el id de la
+microSD con la base de datos; como los turnos son fijos, también se detectan
+por la hora. La trama nueva queda lista para cuando el administrador habilite
+un script nuevo.
+
+\begin{figure}[!htbp]
+    \centering
+    \input{diagramas/trama.tex}
+    \caption{Trama enviada al servidor y registro completo en la microSD.}
+\end{figure}
+
+Cada línea de \texttt{datos.csv} pesa unos 32 bytes. A 288 lecturas por día son
+unos 9~kB diarios y 3,4~MB por año: la capacidad de la tarjeta de 32~GB no es
+un límite.
+
+\subsection{Protecciones agregadas}
+
+\begin{itemize}
+    \item \textbf{Hora inválida.} En la primera prueba el RTC estaba en el año
+        2000 y llegaron al servidor datos con esa fecha. Ahora el RTC se
+        sincroniza por NTP al arrancar, no se mide si el año es anterior a
+        2025, y los pendientes con fecha inválida se descartan.
+    \item \textbf{Cortes de energía.} Cada escritura termina con
+        \texttt{fsync}. Para quitar un pendiente se reescribe la cola en un
+        archivo auxiliar y se reemplaza; si la energía se corta a mitad de
+        camino, al arrancar se recupera la cola completa.
+    \item \textbf{Acceso concurrente.} Un mutex protege la microSD y otro el
+        envío, porque el ciclo principal y la tarea de pendientes los usan a
+        la vez.
+\end{itemize}
+
+\subsection{Modo banco}
+
+Para los ensayos de exactitud el firmware se compila con la opción
+\texttt{-DMODO\_BANCO}: lee el radar cada 2~s y muestra distancia, señal y
+velocidad en el monitor serie, sin guardar ni enviar. El intervalo de
+producción (5~min) también se puede cambiar al compilar, lo que permitió hacer
+el ensayo de corte de red con turnos de 1~min.
+
+\begin{verbatim}
+PLATFORMIO_BUILD_FLAGS=-DMODO_BANCO pio run -t upload
+SENSOR_RS485: Distancia: 0.864 m | senal: 18 dB | velocidad: 0.000 m/s
+\end{verbatim}
+
+% ======================================================
+% 8. DISENO ELECTRONICO
+% ======================================================
+\seccion{Diseño electrónico}
+
+El diseño electrónico es el del primer parcial: una PCB propia de dos capas,
+dividida en subsistemas. Para el radar no hizo falta modificarla.
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Subsistemas de la PCB.}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.2cm}L}
+        \toprule
+        \textbf{Subsistema} & \textbf{Función} \\
+        \midrule
+        Alimentación & Regulador AMS1117 de 5 V a 3,3 V; 12 V directo a las
+            borneras RS485. \\
+        ESP32-S3 & Ejecuta el firmware, coordina los periféricos y el WiFi. \\
+        RTC DS3231M & Fecha y hora de cada medición (I2C), con pila CR2032. \\
+        microSD & Historial y cola de pendientes (SPI). \\
+        USB-C & Alimentación, programación y monitor serie. \\
+        TTL-RS485 & Dos SP3485: radar (J3) y módem (J8). \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{figure}[!htbp]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{esq_alimentacion.png}
+        \caption{Alimentación.}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{esq_esp32.png}
+        \caption{ESP32-S3.}
+    \end{subfigure}\\[6pt]
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{esq_rtc.png}
+        \caption{RTC DS3231M.}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{esq_sd.png}
+        \caption{microSD.}
+    \end{subfigure}\\[6pt]
+    \begin{subfigure}[b]{0.42\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{esq_usbc.png}
+        \caption{USB-C.}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.52\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{esq_rs485.png}
+        \caption{Transceptores TTL-RS485.}
+    \end{subfigure}
+    \caption{Esquemas de los subsistemas.}
+\end{figure}
+
+\subsection{Placa}
+
+La placa se planteó primero en cuatro capas y se rediseñó en dos para
+simplificar la fabricación, reducir el costo y facilitar la inspección. El
+montaje se hizo con pasta de soldar y horno de reflujo~\cite{horno}.
+
+\begin{figure}[!htbp]
+    \centering
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pcb_4capas.png}
+        \caption{Diseño inicial, 4 capas.}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pcb_2capas.png}
+        \caption{Diseño final, 2 capas.}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pcb3d_front_fin.jpg}
+        \caption{Vista 3D del diseño final.}
+    \end{subfigure}
+    \caption{Evolución del diseño de la PCB.}
+\end{figure}
+
+\begin{figure}[!htbp]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pcb_partes.jpg}
+        \caption{Partes principales.}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.42\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{placa_v3.jpg}
+        \caption{Placa usada con el radar.}
+    \end{subfigure}
+    \caption{PCB montada.}
+\end{figure}
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Conectores de la placa.}
+    \begin{tabular}{lll}
+        \toprule
+        \textbf{Conector} & \textbf{Qué es} & \textbf{Uso actual} \\
+        \midrule
+        J2 & Jack DC, entrada 12 V & Salida 12 V de la UPS (solo alimenta las borneras) \\
+        J9 & USB-C, 5 V (con diodo) & Salida USB de la UPS; programación \\
+        J4 & Jack DC, 5 V & Alternativa a J9 (usar uno solo) \\
+        J3 & Bornera 4 polos, RS485 \#1 & Radar FM02B \\
+        J8 & Bornera 4 polos, RS485 \#2 & Módem DTU (modo módem) \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Sistema de control}
+La estación no controla una variable física: es un sistema de adquisición,
+almacenamiento y transmisión. Lo que sí implementa es la lógica de flujo del
+programa: temporización por turnos, validación de cada lectura, reintentos,
+manejo de fallas de comunicación y exclusión mutua entre tareas.
+
+% ======================================================
+% 9. DISENO MECANICO
+% ======================================================
+\seccion{Diseño mecánico}
+
+\subsection{Diseño del primer parcial}
+
+En el primer parcial se diseñaron en SolidWorks el gabinete de la electrónica
+(PCB, UPS y módem, con el cableado por el perímetro y tapa desmontable) y un
+soporte de acero para el sensor ultrasónico. Con el cambio al radar, el soporte
+propio se reemplaza por el kit del fabricante; el gabinete sigue siendo válido
+para alojar la electrónica.
+
+\begin{figure}[!htbp]
+    \centering
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{cad_caja_dist.png}
+        \caption{Distribución interna.}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{cad_caja_cableado.png}
+        \caption{Recorrido del cableado.}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{cad_uniones_caja.png}
+        \caption{Unión de la tapa.}
+    \end{subfigure}\\[6pt]
+    \begin{subfigure}[b]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{cad_soporte.png}
+        \caption{Soporte del ultrasónico.}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{cad_uniones_soporte.png}
+        \caption{Uniones del soporte.}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{cad_render_inferior.png}
+        \caption{Vista inferior.}
+    \end{subfigure}
+    \caption{Modelos CAD del primer parcial.}
+\end{figure}
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Elementos mecánicos.}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.4cm}L>{\raggedright\arraybackslash}p{3.3cm}}
+        \toprule
+        \textbf{Elemento} & \textbf{Función} & \textbf{Material / origen} \\
+        \midrule
+        Gabinete & Aloja PCB, UPS, módem y conexiones; tapa desmontable. &
+            Comercial, plástico \\
+        Soporte orientable (\emph{pico de pato}) & Sostiene el radar y permite
+            nivelarlo. & Acero inoxidable, kit \\
+        Placa adaptadora & Fija el soporte a un poste o caño (110 $\times$ 93
+            mm, agujeros de 7 mm). & Acero inoxidable, kit \\
+        Abrazaderas (3) & Sujetan la placa al poste. & Acero inoxidable, kit \\
+        Cuerpo del radar & 159,5 $\times$ 95 $\times$ 99 mm; cara superior
+            plana con nivel de burbuja. & Aluminio, comercial \\
+        Fijaciones & Unión desmontable de las piezas. & Tornillería \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection{Montaje del radar en el banco de laboratorio}
+
+El radar se montó con su soporte orientable en el extremo de un
+\textbf{perfil metálico ranurado} en voladizo, fijado a una base de madera
+sobre la mesa. Una varilla roscada une el perfil con el soporte y permite
+ajustar la altura. Debajo se ubica el balde con agua. La PCB y la UPS quedan
+sobre la misma base, como estarían dentro del gabinete.
+
+\begin{figure}[!htbp]
+    \centering
+    \begin{subfigure}[b]{0.36\textwidth}
+        \centering
+        \includegraphics[height=6.5cm]{banco_lateral.jpg}
+        \caption{Banco con el balde.}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.6\textwidth}
+        \centering
+        \includegraphics[height=6.5cm]{banco_superior.jpg}
+        \caption{Vista superior: PCB, UPS, perfil y radar.}
+    \end{subfigure}
+    \caption{Banco de laboratorio.}
+\end{figure}
+
+\begin{figure}[!htbp]
+    \centering
+    \resizebox{0.85\textwidth}{!}{\input{diagramas/banco.tex}}
+    \caption{Esquema del banco (sin escala). La distancia del radar se
+    compara con la medida con cinta métrica.}
+\end{figure}
+
+Criterios de montaje tomados del manual~\cite{fm02b_montaje}:
+
+\begin{itemize}
+    \item \textbf{Antena perpendicular al agua.} Se niveló con el nivel de
+        burbuja de la cara superior del radar, en los dos ejes, ajustando el
+        soporte orientable.
+    \item \textbf{Haz libre.} El radar se centra sobre el balde y a menos de
+        1,2~m del agua; se retiraron objetos metálicos del cono del haz.
+    \item \textbf{Cable.} Sin peso colgando del conector y con un bucle en
+        ``U'' por debajo de la ficha, para que el agua no escurra hacia ella.
+\end{itemize}
+
+\begin{figure}[!htbp]
+    \centering
+    \begin{subfigure}[b]{0.28\textwidth}
+        \centering
+        \includegraphics[height=4.6cm]{radar_nivelado.jpg}
+        \caption{Burbuja centrada.}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.28\textwidth}
+        \centering
+        \includegraphics[height=4.6cm]{radar_nivelado2.jpg}
+        \caption{Soporte orientable.}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.4\textwidth}
+        \centering
+        \includegraphics[height=4.6cm]{perfil_improvisado.jpg}
+        \caption{Primer armado del perfil.}
+    \end{subfigure}
+    \caption{Nivelación del radar y armado del perfil.}
+\end{figure}
+
+\subsection{Planos}
+
+Los planos acotados del primer parcial se incluyen al final, en el
+anexo~\ref{sec:planos}.
+
+% ======================================================
+% 10. ENSAYOS
+% ======================================================
+\seccion{Ensayos en banco de laboratorio}
+
+Todos los ensayos se hicieron en el laboratorio. Las pruebas de Proyecto~3
+(9 meses de datos del sensor ultrasónico) sirven de línea de base; aquí se
+cuantifica.
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Plan de ensayos y avance.}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.3cm}L>{\raggedright\arraybackslash}p{2.1cm}L}
+        \toprule
+        \textbf{Ensayo} & \textbf{Cómo} & \textbf{Umbral} & \textbf{Avance} \\
+        \midrule
+        Comunicación & Lecturas del radar con el firmware. & Sin errores
+            de CRC & \REAL \\
+        Exactitud & $\geq$ 4 alturas $\times$ 10 lecturas sobre agua, contra
+            cinta métrica. & $\leq\pm$10 mm & \CURSO \\
+        Consumo & Corriente de cada módulo con fuente de laboratorio y
+            medidor USB. & Se informa & \CURSO\ (radar listo) \\
+        Cortes de red & $\geq$ 10 cortes del router, cortos y largos. & 0
+            perdidos, 0 duplicados & \CURSO\ (1 de 10) \\
+        Cortes de energía & $\geq$ 10, incluso durante la escritura. & 0
+            perdidos, 0 duplicados & \CURSO \\
+        Disponibilidad & 7 días continuos a 5 min. & $\geq$ 95\,\% & \CURSO \\
+        Autonomía & Corte de red eléctrica con la UPS cargada. & Se informa &
+            \CURSO \\
+        Velocidad & Agua en movimiento en un canal. & $\pm$0,01 m/s (ficha) &
+            \ESPERA \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection{Comunicación con el radar}
+
+\begin{resultado}{Resultado}
+El radar respondió a la primera con el firmware: 115\,200 baudios, dirección
+1, sin invertir A/B y \textbf{sin errores de CRC}. El registro \texttt{0x0001}
+quedó confirmado como distancia en milímetros: \textbf{0,197~m del radar
+contra 19,7~cm con cinta}, apuntando a una superficie sólida.
+\end{resultado}
+
+La señal sobre superficies sólidas fue de 15 a 18~dB, por debajo de los 30~dB
+que el manual considera buena. Es esperable con la potencia de emisión en el
+mínimo (7); si sobre el agua sigue baja, se sube la potencia (7 $\to$ 3
+$\to$ 0) antes de tocar la calibración.
+
+\subsection{Exactitud del nivel sobre agua}
+\label{sec:exactitud}
+
+\textbf{Procedimiento.} Con el firmware en modo banco y el radar nivelado sobre
+el balde: (1) se fija una altura de agua; (2) se mide con cinta métrica la
+distancia desde la cara inferior del radar hasta la superficie; (3) se toman
+10 lecturas del radar; (4) se repite para al menos 4 alturas. Se informa el
+error medio, el máximo y la señal.
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Distancia del radar frente a la cinta métrica (en mm; señal en dB).}
+    \begin{tabular}{cccccc}
+        \toprule
+        \textbf{Altura} & \textbf{Cinta} & \textbf{Radar (media)} &
+            \textbf{Error medio} & \textbf{Error máx.} & \textbf{Señal} \\
+        \midrule
+        1 & \completar{} & \completar{} & \completar{} & \completar{} & \completar{} \\
+        2 & \completar{} & \completar{} & \completar{} & \completar{} & \completar{} \\
+        3 & \completar{} & \completar{} & \completar{} & \completar{} & \completar{} \\
+        4 & \completar{} & \completar{} & \completar{} & \completar{} & \completar{} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\completar{Conclusión del ensayo: ¿error $\leq\pm$10 mm? ¿error constante
+(corregir la calibración de $-46$ mm) o variable?}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[height=7cm]{banco_balde.jpg}\hspace{1cm}
+    \includegraphics[height=7cm]{banco_general.jpg}
+    \caption{Radar sobre el balde con agua durante el ensayo de nivel.}
+\end{figure}
+
+\subsection{Consumo}
+
+El radar se alimentó con la fuente de laboratorio a 12~V para leer su
+corriente.
+
+\begin{figure}[!htbp]
+    \centering
+    \begin{minipage}[c]{0.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{consumo_radar.jpg}
+    \end{minipage}\hfill
+    \begin{minipage}[c]{0.46\textwidth}
+        \begin{resultado}{Resultado}
+            \textbf{126 mA a 12 V ($\approx$1,5 W)}, dentro de los 130--160 mA
+            de la ficha. El radar \textbf{no tiene modo de reposo}: consume
+            siempre lo mismo, mida o no.
+        \end{resultado}
+    \end{minipage}
+    \caption{Medición de la corriente del radar con la fuente de laboratorio.}
+\end{figure}
+
+Con ese dato se rehace el balance de energía. La parte del ESP32 se mide con un
+medidor USB; mientras tanto se usa un valor estimado.
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Balance de energía del modo WiFi.}
+    \begin{tabular}{lrl}
+        \toprule
+        \textbf{Consumidor} & \textbf{Potencia} & \textbf{Origen} \\
+        \midrule
+        Radar FM02B & 1,5 W & medido \\
+        ESP32-S3 + WiFi + periféricos & 0,5--1 W & estimado, a medir \\
+        \midrule
+        Total & 2--2,5 W & \\
+        Batería UPS (16\,000 mAh a 3,7 V, 80\,\% de eficiencia) & $\approx$ 47 Wh & \\
+        \textbf{Autonomía estimada} & \textbf{19--23 h} & a confirmar con descarga \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+En modo módem se suma el consumo del DTU, que se medirá al reintegrarlo.
+
+\subsection{Corte de red}
+
+Con la estación midiendo cada 1~min, se apagó el router durante unos 7 minutos.
+
+\begin{figure}[!htbp]
+    \centering
+    \resizebox{0.9\textwidth}{!}{\input{diagramas/corte_red.tex}}
+    \caption{Corte de red n.º 1 (19/11/2026).}
+\end{figure}
+
+\begin{resultado}{Resultado del corte n.º 1}
+WiFi caído de 22:15:29 a 22:22:31. Las \textbf{7 mediciones} de ese lapso
+quedaron en la cola y se reenviaron en orden: \textbf{7 recuperadas, 0
+perdidas, 0 duplicadas} (verificado en la base de datos). La cola quedó vacía
+\textbf{1~min 36~s} después de volver la red.
+\end{resultado}
+
+Faltan 9 cortes de distintos tipos (sin internet pero con WiFi, cortos de menos
+de 1~min y largos de más de 10~min).
+
+\subsection{Funcionamiento continuo}
+
+Desde el 20/11/2026 a las 00:30 la estación funciona sola, alimentada sin
+computadora, midiendo cada 5 minutos y enviando por WiFi (RSSI $-43$~dBm). Con
+estos datos se calcula la disponibilidad: datos recibidos frente a esperados,
+huecos y duplicados.
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Disponibilidad del período de funcionamiento continuo.}
+    \begin{tabular}{lc}
+        \toprule
+        Período & \completar{desde 20/11 00:30 hasta ...} \\
+        Datos esperados (1 cada 5 min) & \completar{} \\
+        Datos recibidos en el servidor & \completar{} \\
+        Disponibilidad & \completar{\%} \\
+        Duplicados & \completar{} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Velocidad superficial}
+
+\ESPERA\ El firmware ya lee la velocidad (registro \texttt{0x01F4}) y la guarda
+en la microSD; en el banco da 0,000~m/s, lo esperable con el agua quieta. Para
+validarla hace falta agua en movimiento: un canal o un tramo de arroyo. En el
+laboratorio no se puede montar un canal, así que este ensayo queda en espera
+hasta conseguir uno.
+
+\subsection{Problemas encontrados}
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Problemas detectados durante los ensayos y solución aplicada.}
+    \begin{tabularx}{\textwidth}{LL}
+        \toprule
+        \textbf{Problema} & \textbf{Solución} \\
+        \midrule
+        El RTC estaba en el año 2000 y se enviaron datos con esa fecha (y
+            $-1$ porque el radar no estaba conectado). & Hora por NTP al
+            arrancar; no se mide sin hora válida; se descartan los pendientes
+            con fecha inválida. \\
+        La tabla del manual dice 9600 baudios de fábrica. & Se leyó la
+            unidad por Bluetooth: 115\,200. \\
+        No hay hoja de datos oficial publicada; los documentos llaman al
+            equipo LDFM01, LDFM02\_B o LDFM04\_B. & Se usan los tres
+            documentos del vendedor y se identifica la unidad por serie y
+            firmware. \\
+        Señal de 15--18 dB (el manual pide $>$ 30). & Potencia de emisión
+            en el mínimo; se ajusta según el ensayo con agua. \\
+        El script del servidor acepta solo dos campos. & id, velocidad,
+            señal y estado van a la microSD; estado calculado en la base de
+            datos. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.55\textwidth]{bd_registros_banco.png}
+    \caption{Registros del servidor durante las primeras pruebas: datos con
+    fecha del año 2000 y $-1$ (antes del NTP), y las primeras distancias del
+    radar (0,197 m y 0,278 m).}
+\end{figure}
+
+\subsection{Videos}
+
+Los videos de los ensayos se publican en YouTube: \completar{enlace}.
+
+% ======================================================
+% 11. INTERFAZ
+% ======================================================
+\seccion{Base de datos e interfaz de usuario}
+
+\subsection{Interfaces existentes}
+
+Durante Proyecto~3 los datos se visualizaron en un panel de
+\textbf{Grafana}~\cite{grafana}, con nivel, precipitación, estado de
+actualización y mapa. El grupo de investigación publica además la web
+\textbf{MburicaoCastAI}, con monitoreo y predicción de crecidas. Ambas son
+trabajos externos a este proyecto académico y aquí solo se citan.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.49\textwidth]{grafana.png}\hfill
+    \includegraphics[width=0.49\textwidth]{web_mburicao.png}
+    \caption{Panel de Grafana (izq.) y web MburicaoCastAI (der.).}
+\end{figure}
+
+\subsection{Estado del dato en la base de datos}
+
+Como el servidor no se puede modificar, el estado se calcula en la base de
+datos, donde el equipo sí tiene acceso:
+
+\begin{itemize}
+    \item \textbf{Columna \texttt{estado}} de cada registro:
+        \texttt{FALLA\_SENSOR} si el valor es $-1$; \texttt{RECUPERADO} si llegó
+        más de 2 minutos tarde (vino de la cola); si no, \texttt{OK}.
+    \item \textbf{Vista de estado de la estación}: \texttt{EN LINEA} o
+        \texttt{CAIDA} si pasan más de 15 minutos (3 lecturas) sin datos.
+\end{itemize}
+
+Ambas funcionan y son la base de la web propia.
+
+\subsection{Web propia}
+
+\CURSO\ La web del equipo muestra los históricos, la antigüedad de la última
+lectura, el estado del sensor y una alarma por umbral. Se prueba primero con
+los datos históricos de Proyecto~3 y luego con los del radar.
+
+\begin{figure}[!htbp]
+    \centering
+    \resizebox{0.85\textwidth}{!}{\input{diagramas/boceto_web.tex}}
+    \caption{Diseño de la web propia (valores ilustrativos).}
+\end{figure}
+
+% ======================================================
+% 12. COSTOS
+% ======================================================
+\seccion{Costos}
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Materiales y componentes (USD).}
+    \begin{tabular}{lrrr}
+        \toprule
+        \textbf{Ítem} & \textbf{Cant.} & \textbf{Unitario} & \textbf{Total} \\
+        \midrule
+        PCB fabricada                                & 1  & 27,60 & 27,60 \\
+        ESP32-S3-WROOM-1                             & 1  & 6,71  & 6,71 \\
+        Transceptor RS485 SP3485EN                   & 2  & 0,80  & 1,60 \\
+        RTC DS3231M                                  & 1  & 13,60 & 13,60 \\
+        Conector microSD                             & 1  & 2,55  & 2,55 \\
+        Portapila y batería CR2032                   & 1  & 2,36  & 2,36 \\
+        Pulsadores SMD (RST y BOOT)                  & 2  & 0,80  & 1,60 \\
+        Capacitores SMD                              & 11 & --    & 3,81 \\
+        Resistencias SMD                             & 16 & --    & 15,68 \\
+        Pasta de soldar SN63/PB37                    & 1  & 12,27 & 12,27 \\
+        \midrule
+        \textbf{Subtotal comprado por el equipo}     &    &       & \textbf{87,78} \\
+        \midrule
+        Radar FM02B con kit de montaje (laboratorio) & 1  & 690,41 & 690,41 \\
+        Envío del radar (laboratorio)                & 1  & 64,80  & 64,80 \\
+        Módem DTU GPRS (laboratorio)                 & 1  & 21,00  & 21,00 \\
+        Mini UPS Marsriva (laboratorio)              & 1  & 46,63  & 46,63 \\
+        \midrule
+        \textbf{Subtotal del laboratorio}            &    &        & \textbf{822,84} \\
+        \midrule
+        \textbf{Total del sistema}                   &    &        & \textbf{910,62} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Los ítems del laboratorio son materiales prestados o adquiridos para el
+proyecto de investigación: no son costo incremental del equipo, pero sí del
+sistema. El \textbf{costo recurrente} es el plan de datos del módem en el modo
+GPRS, que paga la Facultad; el modo WiFi no tiene costo recurrente si se usa
+una red existente.
+
+% ======================================================
+% 13. PENDIENTES
+% ======================================================
+\seccion{Próximos pasos y fuera de alcance}
+
+\textbf{Próximos pasos}
+\begin{enumerate}
+    \item Completar los cortes de red y de energía hasta 10 de cada uno.
+    \item Medir el consumo del ESP32 y la autonomía real con la UPS.
+    \item Cerrar la disponibilidad de 7 días sin tocar la estación.
+    \item Reintegrar el modo módem con el radar y ensayar el envío por GPRS.
+    \item Terminar la web propia sobre la vista de estado de la base de datos.
+    \item Ensayar la velocidad cuando haya un canal con agua en movimiento.
+\end{enumerate}
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Puntos fuera de alcance.}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{4.6cm}L}
+        \toprule
+        \textbf{Punto} & \textbf{Justificación} \\
+        \midrule
+        Instalación y piloto en el arroyo & Depende del Departamento de
+            Mecánica y Energía; se reemplaza por el banco de laboratorio. \\
+        Viento, corrosión e ingreso de agua en sitio & Propios de la
+            instalación; se usa el kit comercial del fabricante. \\
+        Calibrar todo el rango (0,1--40 m) & El laboratorio permite 1--2 m de
+            altura. \\
+        Medición de caudal & Requiere la sección del cauce en el sitio. \\
+        Usuarios y permisos en la web & Los datos son abiertos. \\
+        Web MburicaoCastAI y modelo de predicción & Son del grupo de
+            investigación; solo se citan. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+% ======================================================
+% BIBLIOGRAFIA
+% ======================================================
+\needspace{12\baselineskip}
+\begin{thebibliography}{99}
+\small
+\bibitem{esp32} Espressif Systems, ``ESP32-S3-WROOM-1 and ESP32-S3-WROOM-1U
+    Datasheet,'' v1.8. [En línea]. Disponible en:
+    \url{https://www.mouser.es/datasheet/3/1574/1/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf}
+\bibitem{espidf} Espressif Systems, ``ESP-IDF Programming Guide.'' [En línea].
+    Disponible en: \url{https://docs.espressif.com/projects/esp-idf/en/latest/}
+\bibitem{pio} PlatformIO, ``PlatformIO IDE for Visual Studio Code.'' [En
+    línea]. Disponible en:
+    \url{https://docs.platformio.org/en/latest/integration/ide/vscode.html}
+\bibitem{aguilar} M. Aguilar \emph{et al.}, ``Machine Learning Models for
+    Water Level Prediction in Rapid Urban Streams: Case of Mburicao, Asunción,
+    Paraguay,'' IEEE Xplore, 2025. [En línea]. Disponible en:
+    \url{https://ieeexplore.ieee.org/document/11420547}
+\bibitem{dtu} USR IOT, ``GSM GPRS Modem, Serial RS232/RS485 to GSM DTU
+    Modem.'' [En línea]. Disponible en:
+    \url{https://en.usr.cn/GSM-Modem-Serial-RS232-RS485-GPRS.html}
+\bibitem{ultrasonico} Sensor de nivel ultrasónico con comunicación RS485,
+    ficha comercial (sensor de Proyecto 3). [En línea]. Disponible en:
+    \url{https://es.aliexpress.com/item/1005008225897752.html}
+\bibitem{fm02b_ficha} Luda / POLIVIR, ``LDFM02\_B Flowmeter Radar (Bluetooth
+    Version) Complete Machine Specification Document,'' V1.1, para canales
+    abiertos y ríos.
+\bibitem{fm02b_modbus} Luda / POLIVIR, ``Flowmeter Radar Protocol
+    Specification Document,'' V3.
+\bibitem{fm02b_montaje} Luda / POLIVIR, ``Installation and Adjustment
+    Instructions for the Supporting Structure of the Open Channel Radar Flow
+    Meter.''
+\bibitem{modbus} Modbus Organization, ``MODBUS over Serial Line Specification
+    and Implementation Guide,'' V1.02, 2006. [En línea]. Disponible en:
+    \url{https://www.modbus.org/specs.php}
+\bibitem{ds3231} Analog Devices, ``DS3231M Low-Cost, Extremely Accurate I2C
+    Real-Time Clock Datasheet.'' [En línea]. Disponible en:
+    \url{https://www.analog.com/media/en/technical-documentation/data-sheets/DS3231M.pdf}
+\bibitem{microsd} Molex, ``MicroSD Memory Card Connector, Part Number
+    1040310811.'' [En línea]. Disponible en:
+    \url{https://www.molex.com/en-us/products/part-detail/1040310811}
+\bibitem{usbc} GCT, ``USB4930-00-A USB Type-C 2.0 Connector Datasheet.'' [En
+    línea]. Disponible en: \url{https://www.mouser.sk/datasheet/3/1507/1/usb4930.pdf}
+\bibitem{horno} Shandong Puhui Electric Technology, ``Infrared IC Heater User
+    Manual, Model T962/T962A/T962C.'' [En línea]. Disponible en:
+    \url{https://en.tech168.cn/php/download-detail.php?id=5}
+\bibitem{ups} Marsriva, ``Mini UPS Power Supply System.'' [En línea].
+    Disponible en: \url{https://www.marsriva.com/Products_item_2/157.html}
+\bibitem{grafana} Grafana Labs, ``Grafana Documentation.'' [En línea].
+    Disponible en: \url{https://grafana.com/docs/grafana/latest/}
+\end{thebibliography}
+
+% ======================================================
+% ANEXO: PLANOS
+% ======================================================
+\newpage
+\appendix
+\section{Planos acotados}
+\label{sec:planos}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=\textwidth]{plano_Caja.pdf}
+    \caption{Gabinete de la electrónica (escala 1:5, cotas en mm).}
+\end{figure}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=\textwidth]{plano_Soporte.pdf}
+    \caption{Soporte del sensor del primer parcial (escala 1:2, cotas en mm).}
+\end{figure}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=\textwidth]{plano_Sensor.pdf}
+    \caption{Pieza «Sensor» del primer parcial (escala 1:2, cotas en mm).}
+\end{figure}
+
+\end{document}

@@ -1,0 +1,31 @@
+% Boceto de la web propia (valores ilustrativos)
+\begin{tikzpicture}[
+    tarjeta/.style={draw=gray!50, fill=white, rounded corners=3pt, minimum height=1.35cm, align=center, font=\small},
+    rotulo/.style={font=\scriptsize, text=gray!60!black}
+]
+    % Ventana del navegador
+    \draw[gray!60, fill=gray!5, rounded corners=5pt] (0,0) rectangle (13,7.6);
+    \fill[gray!25, rounded corners=5pt] (0,7.0) rectangle (13,7.6);
+    \fill[gray!25] (0,7.0) rectangle (13,7.2);
+    \foreach \x in {0.3,0.6,0.9} \fill[gray!55] (\x,7.3) circle (0.08);
+    \node[anchor=west, font=\small\bfseries] at (1.3,7.3) {Estación de nivel -- arroyo Mburicaó (datos abiertos)};
+
+    % Alarma
+    \draw[draw=orange!80!black, fill=orange!15, rounded corners=3pt] (0.4,6.15) rectangle (12.6,6.75);
+    \node[font=\small, text=orange!50!black] at (6.5,6.45) {\textbf{Alarma:} el nivel superó el umbral configurado};
+
+    % Tarjetas
+    \node[tarjeta, minimum width=2.8cm] at (1.85,5.1) {{\scriptsize\color{gray!60!black} Nivel actual}\\{\Large\bfseries 0,52 m}};
+    \node[tarjeta, minimum width=2.8cm] at (4.95,5.1) {{\scriptsize\color{gray!60!black} Velocidad}\\{\Large\bfseries 0,35 m/s}};
+    \node[tarjeta, minimum width=2.8cm] at (8.05,5.1) {{\scriptsize\color{gray!60!black} Última lectura}\\{\bfseries hace 2 min}};
+    \node[tarjeta, minimum width=2.8cm] at (11.15,5.1) {{\scriptsize\color{gray!60!black} Estado del sensor}\\{\bfseries\textcolor{agua!80!black}{$\bullet$ OK}}};
+
+    % Gráfico de históricos
+    \draw[gray!50, fill=white, rounded corners=3pt] (0.4,0.4) rectangle (12.6,4.1);
+    \node[anchor=west, font=\footnotesize\bfseries] at (0.6,3.8) {Históricos};
+    \node[anchor=east, rotulo] at (12.4,3.8) {24 h \quad 7 días \quad 30 días};
+    \draw[gray!40] (1,0.8) -- (12.2,0.8);
+    \draw[gray!40] (1,0.8) -- (1,3.4);
+    \draw[radar, thick] plot[smooth] coordinates {(1,1.1) (2,1.15) (3,1.1) (4,1.2) (4.6,2.9) (5.1,1.5) (6,1.2) (7,1.15) (8,1.2) (8.6,2.3) (9.1,1.3) (10,1.15) (11,1.2) (12.2,1.15)};
+    \draw[orange!80!black, dashed] (1,2.6) -- (12.2,2.6) node[above left, rotulo, text=orange!60!black] {umbral de alarma};
+\end{tikzpicture}
