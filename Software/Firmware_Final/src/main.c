@@ -13,6 +13,7 @@
 #include "sdcard.h"
 #include "sensor_rs485.h"
 #include "wifi_envio.h"
+#include "modem_dtu.h"
 
 static const char *TAG = "MAIN";
 static SemaphoreHandle_t envio_mutex;
@@ -110,7 +111,32 @@ static void formatear_linea(char *linea, size_t tam, uint32_t epoch, uint32_t id
 }
 
 // ======================================================
-// ENVIO WIFI PARA CICLO PRINCIPAL
+// ENVIO AL PHP: MODEM GPRS Y, SI FALLA, WIFI
+// El modem no depende de la red WiFi del lugar. Si los dos fallan, el
+// dato queda en temp.csv y la tarea de pendientes lo reintenta igual.
+// (Si el modem inserto pero su "OK" no llego, el WiFi lo duplica:
+// se detecta por la hora, los intervalos son fijos.)
+// Llamar con envio_mutex tomado.
+// ======================================================
+
+static bool envio_php(uint32_t timestamp, float nivel)
+{
+    if (dtu_send_level(timestamp, nivel))
+    {
+        return true;
+    }
+
+    if (wifi_conectado())
+    {
+        ESP_LOGW(TAG, "Modem sin OK. Reintentando por WiFi");
+        return wifi_send_level(timestamp, nivel);
+    }
+
+    return false;
+}
+
+// ======================================================
+// ENVIO PARA CICLO PRINCIPAL
 // Espera mas tiempo porque tiene prioridad.
 // ======================================================
 
@@ -120,7 +146,7 @@ static bool envio_level_main(uint32_t timestamp, float nivel)
 
     if (xSemaphoreTake(envio_mutex, pdMS_TO_TICKS(30000)) == pdTRUE)
     {
-        ok = wifi_send_level(timestamp, nivel);
+        ok = envio_php(timestamp, nivel);
         xSemaphoreGive(envio_mutex);
     }
     else
@@ -132,7 +158,7 @@ static bool envio_level_main(uint32_t timestamp, float nivel)
 }
 
 // ======================================================
-// ENVIO WIFI PARA PENDIENTES
+// ENVIO PARA PENDIENTES
 // Espera poco. Si el envio esta ocupado, no molesta al ciclo principal.
 // ======================================================
 
@@ -142,7 +168,7 @@ static bool envio_level_bg(uint32_t timestamp, float nivel)
 
     if (xSemaphoreTake(envio_mutex, pdMS_TO_TICKS(1000)) == pdTRUE)
     {
-        ok = wifi_send_level(timestamp, nivel);
+        ok = envio_php(timestamp, nivel);
         xSemaphoreGive(envio_mutex);
     }
     else
@@ -165,10 +191,10 @@ static void task_pendientes(void *pv)
         uint32_t ts;
         float nivel;
 
-        // Solo con WiFi, lejos del proximo slot y si hay algo en la cola
+        // Lejos del proximo slot y si hay algo en la cola (el modem no
+        // depende del WiFi: se intenta siempre)
         if (reloj_now(&dt) &&
             reloj_segundos_hasta_proximo_slot(&dt) > MARGEN_BG_SLOT_S &&
-            wifi_conectado() &&
             sdcard_read_first_pending(&ts, &nivel))
         {
             if (ts < EPOCH_MINIMO)
@@ -244,11 +270,12 @@ void app_main(void)
     }
 #endif
 
-    ESP_LOGI(TAG, "Iniciando sistema solo nivel...");
+    ESP_LOGI(TAG, "Iniciando sistema: PHP por modem GPRS (respaldo WiFi), PC y pagina por WiFi");
 
     reloj_init();
     sdcard_init();
     sensor_rs485_init();
+    dtu_init();
     wifi_init();
     led_init();
     envio_mutex = xSemaphoreCreateMutex();

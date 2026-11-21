@@ -4,7 +4,7 @@ Reglas para `Software/Firmware_Final/` y `Software/Firmware_Pruebas/`. Las regla
 
 ## Proyectos
 
-- `Firmware_Final/` — **firmware de producción** (PlatformIO + ESP-IDF, env `freenove_esp32_s3_wroom`). `src/main.c` + componentes en `components/{reloj,sdcard,sensor_rs485,wifi_envio,led}`. `modem_dtu` sigue en el árbol pero no se usa (P4 envía por WiFi).
+- `Firmware_Final/` — **firmware de producción** (PlatformIO + ESP-IDF, env `freenove_esp32_s3_wroom`). `src/main.c` + componentes en `components/{reloj,sdcard,sensor_rs485,modem_dtu,wifi_envio,led}`. El PHP va por el módem GPRS (respaldo WiFi); la PC y la página, por WiFi.
 - `Firmware_Pruebas/` — pruebas aisladas por módulo (se comenta/descomenta en `main/main.c`). API distinta a la final; no reutilizar sin revisar.
 
 ## Comandos
@@ -24,9 +24,9 @@ cd Software/Firmware_Final        # o Software/Firmware_Pruebas
 
 ## Flujo del firmware final
 
-1. `app_main`: init RTC → SD → sensor (hace una lectura de descarte) → WiFi (espera hasta 15 s, no bloquea si no hay red) → LED; crea `envio_mutex` y `task_pendientes` (prio 4, stack 8192).
-2. Loop: lee RTC, espera al próximo slot (**cada 5 min**), toma un **id correlativo** de la NVS (`id_siguiente`, sobrevive a reinicios), lee sensor hasta 3 intentos (`sensor_rs485_leer`: distancia, señal, velocidad y estado), `timestamp = epoch(RTC) + 3*3600` (RTC en hora local PY UTC-3 → se convierte a UTC), guarda siempre la línea completa en `/sdcard/datos.csv`, envía `d=<epoch>,<distancia>` (`-1` si falló); si el envío falla, agrega a `/sdcard/temp.csv`.
-3. `task_pendientes`: cada 5 s, **si hay WiFi** y faltan >35 s al próximo slot, toma el primer pendiente FIFO, lo envía (mutex con 1 s de espera) y si hay `OK` reescribe `temp.csv` sin esa línea.
+1. `app_main`: init RTC → SD → sensor (hace una lectura de descarte) → módem DTU (espera 3 s) → WiFi (espera hasta 15 s, no bloquea si no hay red) → LED; crea `envio_mutex` y `task_pendientes` (prio 4, stack 8192).
+2. Loop: lee RTC, espera al próximo slot (**cada 5 min**), toma un **id correlativo** de la NVS (`id_siguiente`, sobrevive a reinicios), lee sensor hasta 3 intentos (`sensor_rs485_leer`: distancia, señal, velocidad y estado), `timestamp = epoch(RTC) + 3*3600` (RTC en hora local PY UTC-3 → se convierte a UTC), guarda siempre la línea completa en `/sdcard/datos.csv`, manda la línea completa a la PC (UDP), envía `d=<epoch>,<distancia>` (`-1` si falló) al PHP con `envio_php` (**módem GPRS primero; si no hay `OK`, WiFi**); si los dos fallan, agrega a `/sdcard/temp.csv`; por último manda la línea a GitHub (página).
+3. `task_pendientes`: cada 5 s, si faltan >35 s al próximo slot (ya no exige WiFi: el módem no depende de él), toma el primer pendiente FIFO, lo envía (mutex con 1 s de espera) y si hay `OK` reescribe `temp.csv` sin esa línea.
 
 ## Particularidades que hay que conocer
 
@@ -41,6 +41,7 @@ cd Software/Firmware_Final        # o Software/Firmware_Pruebas
 - **Hora:** al arrancar (y siempre que el RTC tenga año < 2025) se sincroniza por NTP (`pool.ntp.org`, `wifi_hora_utc`) y se escribe en el DS3231 en hora PY (`reloj_set`, borra el flag OSF). Sin hora válida **no se mide** (`reloj_hora_valida`). La tarea de pendientes **descarta** los de `temp.csv` con epoch < 2025-01-01 en vez de enviarlos. Motivo: el 19/11/2026 el RTC estaba en el año 2000 (¿pila BT1?) y se enviaron `-1` con esas fechas a la base.
 - `wifi_send_level` hace un POST a `SERVIDOR_URL?d=<epoch>,<valor>` con el mismo `d=...` en el cuerpo (no se conoce el PHP: así sirve con `$_GET`, `$_POST` o `$_REQUEST`); éxito = HTTP 200 y `OK` en la respuesta. Timeout 10 s. La URL (script PHP de inserción) va solo en `credenciales.h`: no escribirla en el repo.
 - **Página de monitoreo (GitHub Pages)**: tras el PHP, `wifi_send_github` hace un POST HTTPS a `api.github.com/repos/<GITHUB_REPO>/dispatches` (evento `lectura`, `client_payload.linea` = la línea de `datos.csv`; éxito = HTTP 204; certificados del bundle de ESP-IDF). Sin `GITHUB_REPO`/`GITHUB_TOKEN` en `credenciales.h` no hace nada; no va en modo banco. El Action `.github/workflows/lectura.yml` valida la línea y la agrega a `datos.json` de la rama `datos` (un solo commit reescrito con `--force`, últimos 30 días). `pagina.yml` publica `web/` en Pages cuando cambia; la página lee `datos.json` por la API de GitHub (o raw). Token: *fine-grained*, solo este repo, permiso **Contents: Read and write**. Sin cola: si GitHub falla, la lectura queda solo en la SD y en la PC.
+- **Módem DTU** (USR-GPRS232-730, firmware V3.2.2, UART2 GPIO5/6, RTS GPIO7, 115200 8N1): configurado por AT el 20/11/2026 en modo `HTTPD` (`AT+WKMOD`), `POST`, URL `/level/insertarMasi.php` (antes apuntaba a `insertarFecha.php`), servidor = el de `credenciales.h` puerto 80, header `Content-Type: application/x-www-form-urlencoded[0D][0A]`, timeout 10 s, filtro de cabeceras `on` (al serial llega solo el cuerpo, `OK`), APN `internet.tigo.py`. Modo comando: `+++` → `a` → `a` → `+ok`; `AT+S` guarda y reinicia. Solo HTTP y un servidor: **no puede enviar a GitHub** (exige HTTPS). `dtu_send_level` lee hasta `OK`, 500 ms de silencio o 15 s.
 - **Redes WiFi**: `WIFI_REDES` en `credenciales.h` es una lista en orden de preferencia (hoy FIUNA y `LabEquiposMedicos`). Al arrancar se usa la primera que aparece en el escaneo (no la de mejor señal); tras 3 desconexiones seguidas pasa a la siguiente. El formato viejo `WIFI_SSID`/`WIFI_CLAVE` sigue compilando.
 - `components/wifi_envio/credenciales.h` (redes WiFi, URL, PC) está en `.gitignore`; la plantilla es `credenciales_ejemplo.h`. **Nunca subir el real.**
 - Partición `partitions_singleapp_large.csv` (app 1,5 MB) puesta en `platformio.ini`: PlatformIO ignora la del `sdkconfig`. Con WiFi la app no entra en 1 MB.

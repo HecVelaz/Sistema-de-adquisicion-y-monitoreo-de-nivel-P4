@@ -74,28 +74,48 @@ bool dtu_send_level(uint32_t timestamp, float level_m)
 
     uart_wait_tx_done(DTU_UART_PORT, pdMS_TO_TICKS(3000));
 
-    uint8_t data[DTU_BUF_SIZE];
+    // Lee hasta "OK", hasta DTU_SILENCIO_MS sin bytes despues de recibir algo,
+    // o hasta DTU_RESPONSE_TIMEOUT_MS (el modem no contesto).
+    char data[DTU_BUF_SIZE];
+    int total = 0;
+    TickType_t inicio = xTaskGetTickCount();
 
-    int len = uart_read_bytes(
-        DTU_UART_PORT,
-        data,
-        DTU_BUF_SIZE - 1,
-        pdMS_TO_TICKS(DTU_RESPONSE_TIMEOUT_MS)
-    );
+    while (total < DTU_BUF_SIZE - 1 &&
+           (xTaskGetTickCount() - inicio) < pdMS_TO_TICKS(DTU_RESPONSE_TIMEOUT_MS))
+    {
+        int len = uart_read_bytes(DTU_UART_PORT, (uint8_t *)data + total,
+                                  DTU_BUF_SIZE - 1 - total,
+                                  pdMS_TO_TICKS(total > 0 ? DTU_SILENCIO_MS : 100));
 
-    if (len > 0) {
-    data[len] = '\0';
+        if (len > 0)
+        {
+            total += len;
+            data[total] = '\0';
 
-    ESP_LOGI(TAG, "Respuesta DTU:");
-    printf("%s\n", (char *)data);
-
-    if (strstr((char *)data, "OK") != NULL) {
-        return true;
+            if (strstr(data, "OK") != NULL) break;
+        }
+        else if (total > 0)
+        {
+            break;   // ya contesto algo y se callo
+        }
     }
 
-    return false;
-    }   
+    if (total == 0)
+    {
+        ESP_LOGW(TAG, "Sin respuesta del DTU");
+        return false;
+    }
 
-    ESP_LOGW(TAG, "Sin respuesta del DTU");
-    return false;
+    data[total] = '\0';
+
+    // Respuesta en una linea para el log
+    for (int i = 0; i < total; i++)
+    {
+        if (data[i] == '\r' || data[i] == '\n') data[i] = ' ';
+    }
+
+    bool ok = (strstr(data, "OK") != NULL);
+    ESP_LOGI(TAG, "Respuesta DTU: %s", data);
+
+    return ok;
 }
