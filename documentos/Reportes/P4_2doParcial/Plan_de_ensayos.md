@@ -50,6 +50,18 @@ Pasos y tablas para completar durante cada prueba del banco de laboratorio. Los 
 
 Potencia de nivel usada: ____ · Calibración del radar: −46 mm · Sensibilidad: 5
 
+**Cálculo de la tabla** (desde la raíz del repo, con el receptor guardando en `lecturas_pc.csv`):
+
+```bash
+# Durante la medición: las últimas 10 lecturas OK contra la cinta (mm)
+python3 Software/receptor_pc/exactitud.py --ultimas 10 --ref 873
+# Al final: una --medida por altura (rango de ids o de horas de la PC)
+python3 Software/receptor_pc/exactitud.py \
+    --medida "1 (~0,3 m)" 302 11 20 --medida "2 (~0,5 m)" 498 22:40:00 22:40:25
+```
+
+El script imprime la tabla en Markdown (lista para pegar aquí), avisa si hay menos de 10 lecturas OK, fallas o señal < 30 dB, y calcula el error promedio entre alturas. En modo banco el id vuelve a 1 en cada arranque: con ids se toma el bloque más reciente.
+
 **Análisis**
 
 - Si el error es **constante** en las 4 alturas (corrimiento), corregir la calibración (`0x07D8`, pasos de 1 mm), anotar el valor anterior y el nuevo y **repetir** el ensayo.
