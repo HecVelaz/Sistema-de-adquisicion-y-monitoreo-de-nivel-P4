@@ -2,6 +2,36 @@
 
 Registro por fecha de lo hecho en cada sesión. El estado actual está en `docs/ESTADO.md`; lo que falta, en `docs/PENDIENTES.md`.
 
+## 2026-11-21 — Verificación del repo, informe del 2.º parcial subido y CLAUDE.md de Software adelgazado
+
+### Hecho
+
+- **`/verificar`**: `AGENTS.md` como symlink OK, rutas citadas OK, `ESTADO.md` < 80 líneas, `pio run` sin warnings en `Firmware_Final` (Flash 72,3 %) y `Firmware_Pruebas` (build incremental: no recompiló nada). Fallaban `Software/CLAUDE.md` (9099 bytes y estado con fechas) y 8 archivos versionados > 5 MB de antes (zip de Espressif, STEP, SolidWorks, PDFs de P3/P4).
+- **`Software/Moden/Gm3Cfg.ini` guarda la IP del servidor** (`HTPSV=`) y no estaba ignorado: `Software/Moden/` y `Software/Moden.rar` al `.gitignore`. Los manuales que ya estaban versionados siguen versionados.
+- **La captura de Grafana del informe mostraba la IP del servidor** en la barra del navegador: se recortó la barra (`figuras/grafana.png`, 1911×960 → 1911×912), se recompiló el informe (32 págs.), se copió a `Informe_2doParcial_P4.pdf` y se actualizó el zip de Overleaf. Antes del commit se buscaron en lo que se subía la IP y los valores de `credenciales.h`: nada. La captura original quedó fuera del repo.
+- Subidos: informe del 2.º parcial (fuente LaTeX, PDF 5,5 MB y zip 7,1 MB; > 5 MB, como los del 1.er parcial), 14 fotos de la bancada, `leer_radar_pc.py` (radar directo a la PC con adaptador USB–RS485, mismo formato que `lecturas_pc.csv`) y el plan de ensayos con esa alternativa.
+- **`/adelgazar-claude`** sobre `Software/CLAUDE.md` (9099 → 7985 bytes): estado con fecha → `ESTADO.md`; motivos (RTC en el año 2000, stack 3584 → 8192) → `DECISIONES.md`; README/`components/` → `PENDIENTES.md`; parámetros AT y modo comando del módem → `Software/Moden/Moden.md`; se quitó lo repetido con la raíz y las notas. El `CLAUDE.md` raíz no cambió. Rama `adelgazar-claude` mergeada (fast-forward) y borrada.
+
+### Observaciones
+
+- Si el PDF entregado el 16/11 llevaba la captura completa, ese PDF muestra la IP; en el repo no está.
+- Los SSID de las redes WiFi siguen escritos en `ESTADO.md` y `DECISIONES.md` (la regla dice que van solo en `credenciales.h`).
+
+### Comandos útiles
+
+```bash
+# Recompilar el informe del 2.º parcial y actualizar PDF y zip (desde P4_2doParcial/)
+cd latex_informe_2P && pdflatex main.tex && pdflatex main.tex && cp main.pdf ../Informe_2doParcial_P4.pdf
+zip ../latex_informe_2P_overleaf.zip figuras/<archivo cambiado>   # actualiza solo ese archivo
+# Buscar texto en lo que se va a commitear
+git grep --cached -l -a '<texto>' -- $(git diff --cached --name-only)
+```
+
+### Commits
+
+- `8e5400f` Informe del 2.º parcial, fotos del banco y lector del radar por USB-RS485 (push)
+- `27f7882` Adelgazar Software/CLAUDE.md (9099 → 7985 bytes) (push)
+
 ## 2026-11-20 (tarde) — Envío a la PC, página en GitHub Pages, FIUNA y módem GPRS
 
 ### Hecho

@@ -1,16 +1,16 @@
-# Estado del proyecto — 2026-11-20 (noche)
+# Estado del proyecto — 2026-11-21
 
 Foto del estado actual. Se reescribe al cerrar cada sesión (`/cerrar`); la historia está en `docs/BITACORA.md`.
 
 ## Contexto
 
 - P3 terminado (línea de base). P4 1.er parcial: 46/50; lo más flojo fue validación y objetivos.
-- Informes del 1.er parcial y su fuente LaTeX: `documentos/Reportes/P4_1erParcial/` (incluye `Respuesta_evaluacion_1P_P4.pdf`, con lo prometido para el 2.º parcial). Material del 2.º parcial: `documentos/Reportes/P4_2doParcial/`.
+- Informes del 1.er parcial y su fuente LaTeX: `documentos/Reportes/P4_1erParcial/` (incluye `Respuesta_evaluacion_1P_P4.pdf`, con lo prometido para el 2.º parcial). Material del 2.º parcial: `documentos/Reportes/P4_2doParcial/`, con el **informe** `Informe_2doParcial_P4.pdf` (32 págs.; fuente `latex_informe_2P/` y zip para Overleaf).
 - La fecha de entrega registrada (16/11/2026) ya pasó: falta confirmar la nueva.
 
 ## Radar FM02B
 
-- Funciona con el firmware en J3 (115200, dirección 1). `0x0001` = distancia en mm, confirmado con cinta a una altura (0,197 m contra ~19,7 cm). **Hoy quedó desconectado**: todas las lecturas de la tarde son `-1` / estado 1.
+- Funciona con el firmware en J3 (115200, dirección 1, leídos por Bluetooth). `0x0001` = distancia en mm, confirmado con cinta a una altura (0,197 m contra ~19,7 cm). **Hoy quedó desconectado**: todas las lecturas de la tarde son `-1` / estado 1.
 - Señal 15–18 dB sobre superficies (el manual pide > 30); **todavía no se midió sobre agua**.
 - Velocidad (`0x01F4`) se lee: 0,000 m/s en el banco.
 - **Consumo: 126 mA a 12 V (~1,5 W)**. No tiene modo de reposo.
@@ -29,15 +29,15 @@ Foto del estado actual. Se reescribe al cerrar cada sesión (`/cerrar`); la hist
 | Destino | Por dónde | Si falla |
 | --- | --- | --- |
 | PHP del servidor (`d=<epoch>,<distancia>`) | **Módem GPRS** (HTTPD) | WiFi; si no, cola en la SD |
-| PC (línea completa, con velocidad) | WiFi, UDP broadcast :5005 | solo SD |
+| PC (línea completa, con velocidad) | WiFi, UDP broadcast :5005 (FIUNA no aísla clientes) | solo SD |
 | Página GitHub Pages (línea completa) | WiFi, HTTPS (`repository_dispatch`) | solo SD y PC |
 | SD `datos.csv` (`epoch,id,distancia,velocidad,señal,estado`) | — | — |
 
 - **Probado en la placa** a las 21:05 (id 241): SD + PC + `Respuesta DTU: OK` (3,9 s) + página. Detalle técnico: `Software/CLAUDE.md`.
 - WiFi: lista `WIFI_REDES` (FIUNA primero, `LabEquiposMedicos` de respaldo). Credenciales, URL, IP de la PC y token: solo en `credenciales.h`.
-- Módem USR-GPRS232-730 configurado por AT: `HTTPD`, POST a `/level/insertarMasi.php`, timeout 10 s, APN `internet.tigo.py`, señal 25–27/31.
+- Módem USR-GPRS232-730 configurado por AT: `HTTPD`, POST a `/level/insertarMasi.php`, timeout 10 s, APN `internet.tigo.py`, señal 25–27/31. Parámetros: `Software/Moden/Moden.md`.
 - Página: https://hecvelaz.github.io/Sistema-de-adquisicion-y-monitoreo-de-nivel-P4/ — datos en `datos.json` de la rama `datos` (30 días). **Token de GitHub vence el 2027-01-19**; al vencer la página deja de recibir (lo demás sigue).
-- Receptor en la PC: `python3 Software/receptor_pc/receptor_udp.py` (opcional; nada depende de él).
+- Receptor en la PC: `python3 Software/receptor_pc/receptor_udp.py` (opcional; nada depende de él). Sin la placa: `leer_radar_pc.py` lee el radar con un adaptador USB–RS485 (para exactitud).
 - Modo banco (`-DMODO_BANCO`): cada 2 s a la PC, sin SD, PHP ni página. Intervalo de producción 5 min.
 - Pendiente de ensayar: corte durante la escritura en la SD, corte de WiFi con el módem enviando.
 
@@ -63,13 +63,6 @@ Foto del estado actual. Se reescribe al cerrar cada sesión (`/cerrar`); la hist
 - Guía de armado: `P4_2doParcial/Guia_conexion_radar_FM02B.md` y `.pdf` (9 págs.), al día: radar, módem en J8, envíos, registros nuevos y fallas.
 - **Plan de ensayos** con procedimientos y tablas para completar: `P4_2doParcial/Plan_de_ensayos.md`.
 - `README.md` raíz: al día con P4 (arquitectura módem + WiFi + página, conectores, pinout, formatos).
-- Manuales y programa del módem en `Software/Moden/` (subidos; `Gm3Cfg.ini` no, tiene la IP del servidor).
+- Manuales y programa del módem en `Software/Moden/`; la carpeta está en `.gitignore` para lo nuevo (`Gm3Cfg.ini` tiene la IP del servidor).
+- Fotos de la bancada en `P4_2doParcial/Fotos/bancada_de_prueba/`. Las capturas para el repo no deben mostrar la IP del servidor (la de Grafana se recortó).
 - En la respuesta a la evaluación se escribió "tenemos acceso al servidor para adaptarlo": no es así (solo a la BD). Explicarlo en el 2.º parcial.
-
-## Movido desde CLAUDE.md (2026-11-21)
-
-Desde `Software/CLAUDE.md`.
-
-- UDP broadcast a la PC probado en la red FIUNA el 20/11/2026: no aísla clientes.
-- Radar: 115200 y dirección 1 confirmados por Bluetooth el 19/11/2026.
-- Módem configurado por AT el 20/11/2026 (antes apuntaba a `insertarFecha.php`); parámetros en `Software/Moden/Moden.md`.

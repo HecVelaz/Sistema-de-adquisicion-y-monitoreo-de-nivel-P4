@@ -10,7 +10,7 @@ Procedimientos y tablas de los ensayos: `documentos/Reportes/P4_2doParcial/Plan_
 2. **Conectar el radar** (estuvo desconectado toda la tarde del 20/11) y revisar el día de datos que dejó la placa sola el 20/11 hasta ~18:00 (vista `Masi_estado_estacion`, huecos y duplicados).
 3. **Cortes de energía** con el firmware nuevo (desenchufar la placa), incluso justo durante la escritura en la SD y el envío: al volver, el id sigue y no se pierden pendientes.
 4. **WiFi caído con el módem activo**: el PHP tiene que seguir llegando por GPRS (y la página/PC se cortan). Y al revés: módem sin señal o apagado → el PHP sale por WiFi. Contar duplicados.
-5. **Exactitud sobre agua** con el modo banco (lecturas cada 2 s en el receptor de la PC): ≥ 4 alturas × 10 lecturas contra cinta (≤ ±10 mm). Mirar la señal (> 30 dB); si sigue baja, subir la potencia de nivel (7 → 3 → 0).
+5. **Exactitud sobre agua** con el modo banco o con `leer_radar_pc.py` y el adaptador USB–RS485 (lecturas cada 2 s en la PC; probar primero con `--prueba`): ≥ 4 alturas × 10 lecturas contra cinta (≤ ±10 mm). Mirar la señal (> 30 dB); si sigue baja, subir la potencia de nivel (7 → 3 → 0).
 6. **Disponibilidad 7 días** a 5 min (≥ 95 %), sin tocar la placa ni el USB (con su fuente). Empezar cuando terminen los cortes y los cambios de firmware.
 
 ## Banco de laboratorio (validación)
@@ -39,9 +39,4 @@ Procedimientos y tablas de los ensayos: `documentos/Reportes/P4_2doParcial/Plan_
 19. `ERC.rpt` (faltan PWR_FLAG) y `DRC.rpt` viejo.
 20. `sdkconfig` declara flash de 2 MB y el módulo tiene más; `Firmware_Pruebas/sdkconfig.defaults` habla de N8R8.
 21. Verificar la pila BT1 (CR2032) del DS3231.
-
-## Movido desde CLAUDE.md (2026-11-21)
-
-Desde `Software/CLAUDE.md`.
-
-- Revisar si el README raíz describe bien `components/` (en `Firmware_Pruebas` se llaman `led_blink`, `dtu`, `rtc`, `sensor`).
+22. Revisar si el README raíz describe bien `components/` (en `Firmware_Pruebas` se llaman `led_blink`, `dtu`, `rtc`, `sensor`).
