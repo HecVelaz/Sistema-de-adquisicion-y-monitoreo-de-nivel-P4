@@ -39,7 +39,7 @@ Electrónica (integración + consumo/autonomía), Firmware (Store and Forward co
 
 ### Comunicación y hora
 
-- **Envío por WiFi del ESP32-S3 en lugar del módem DTU** (decisión del equipo "por ahora"). `modem_dtu` queda en el árbol sin usar; J8 y UART2 libres.
+- ~~**Envío por WiFi del ESP32-S3 en lugar del módem DTU** (decisión del equipo "por ahora"). `modem_dtu` queda en el árbol sin usar; J8 y UART2 libres.~~ Reemplazada el 2026-11-20 (tarde): el PHP vuelve a ir por el módem, con respaldo WiFi.
 - Se mantiene el mismo script del servidor (`insertarMasi.php`) y la trama `d=<epoch>,<valor>`. Como no se conoce el PHP, el firmware hace un POST con `d=` en la URL **y** en el cuerpo (sirve con `$_GET`, `$_POST` o `$_REQUEST`, una sola inserción).
 - **Hora por NTP** al arrancar y escrita en el DS3231 (hora PY, se conserva el +3 h al enviar). **Sin hora válida (año < 2025) no se mide**, y los pendientes con fecha < 2025-01-01 se descartan en vez de enviarse. Motivo: el RTC estaba en el año 2000 y se enviaron datos con esa fecha.
 
@@ -61,3 +61,14 @@ Electrónica (integración + consumo/autonomía), Firmware (Store and Forward co
 
 - El intervalo de producción sigue en **5 min**; 1 min solo para pruebas, con la opción de compilación.
 - No se agrega OTA por ahora (requiere cambiar la tabla de particiones).
+
+## 2026-11-20 (tarde)
+
+### Comunicación (decisiones del usuario)
+
+- **PHP por el módem GPRS y, si no hay `OK`, por WiFi**; si fallan los dos, cola en la SD. Motivo: que el dato llegue al servidor aunque no haya WiFi. Riesgo aceptado: si el módem insertó pero su `OK` se perdió, el WiFi duplica (se detecta por la hora).
+- **WiFi para la PC y la página**: el módem solo hace HTTP a un servidor y GitHub exige HTTPS.
+- **Lectura completa a la PC por UDP broadcast** (sin cola ni reintento: la SD tiene todo). Se descartó Tailscale (no corre en la ESP32) y, por ahora, MQTT.
+- **Lista de redes WiFi** en orden de preferencia (FIUNA primero, para estar en la misma red que la PC); no un portal de configuración.
+- **Página de monitoreo en GitHub Pages, en este repo**, alimentada **directo por la ESP32** (`repository_dispatch` → Action → `datos.json` en la rama `datos`), no con la PC como puente, para que no dependa de la PC. Se descartó leer la BD con Actions porque la velocidad no está en la BD. La rama `datos` se reescribe con `--force` (un solo commit) para que el repo no crezca.
+- **Token de GitHub *fine-grained***, solo este repo, Contents: Read and write; solo en `credenciales.h`. Vence el 2027-01-19.

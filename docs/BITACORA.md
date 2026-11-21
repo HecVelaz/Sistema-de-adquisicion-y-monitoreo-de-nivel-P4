@@ -2,6 +2,40 @@
 
 Registro por fecha de lo hecho en cada sesión. El estado actual está en `docs/ESTADO.md`; lo que falta, en `docs/PENDIENTES.md`.
 
+## 2026-11-20 (tarde) — Envío a la PC, página en GitHub Pages, FIUNA y módem GPRS
+
+### Hecho
+
+- **Lectura completa a la PC por UDP** (`wifi_send_pc`): en cada medición la placa manda la línea de `datos.csv` (`epoch,id,distancia_m,velocidad_ms,senal_db,estado`) a `PC_IP:5005`. Receptor `Software/receptor_pc/receptor_udp.py` → `lecturas_pc.csv` (en `.gitignore`). El modo banco también manda a la PC cada 2 s. La velocidad **no** va al PHP. En la PC hubo que abrir el firewall: `sudo ufw allow 5005/udp`.
+- **Lista de redes WiFi** (`WIFI_REDES` en `credenciales.h`): FIUNA primero, `LabEquiposMedicos` de respaldo. Se usa la primera que aparece en el escaneo; tras 3 desconexiones pasa a la siguiente. Con FIUNA conectó (RSSI −50 a −62 dBm).
+- **Broadcast**: `PC_IP "255.255.255.255"`; probado en FIUNA: llega a la PC sin importar su IP (FIUNA no aísla clientes).
+- **Página de monitoreo en GitHub Pages** (https://hecvelaz.github.io/Sistema-de-adquisicion-y-monitoreo-de-nivel-P4/): la placa hace `repository_dispatch` (evento `lectura`) por HTTPS después del PHP; el Action `lectura.yml` valida la línea y la agrega a `datos.json` en la rama `datos` (un commit reescrito con `--force`, últimos 30 días); `pagina.yml` publica `web/`. La página muestra distancia, velocidad, señal, antigüedad, estado (EN LÍNEA / CAÍDA > 15 min), alarma, gráficos 24 h / 7 d / 30 d y últimas lecturas; lee `datos.json` por la API de GitHub (o raw). Token *fine-grained* solo para este repo, **Contents: Read and write**, vence **2027-01-19**; está solo en `credenciales.h`. La primera vez dio HTTP 403 (faltaba el permiso Contents): se corrigió editando el token, sin recargar la placa.
+- Se descartó la versión anterior de la web (BD → GitHub Actions cada 15 min), porque la velocidad no está en la BD. No se subió.
+- **Módem USR-GPRS232-730** (firmware V3.2.2) configurado por AT desde la PC (adaptador CH340, `/dev/ttyUSB0`, 115200): ya estaba en `HTTPD`, POST, servidor y header correctos, timeout 10 s, filtro de cabeceras `on`, APN `internet.tigo.py`. Solo se cambió la URL de `/level/insertarFecha.php` a `/level/insertarMasi.php` y se guardó con `AT+S`. Señal 25–27/31. **Trama de prueba desde la PC: `d=1795218343,-1.000` → `OK`** (queda en la BD una fila `-1` del 20/11 a las 20:45:43).
+- **Firmware: PHP por el módem con respaldo WiFi** (`envio_php`): módem primero; si no hay `OK`, WiFi; si fallan los dos, cola en la SD. La tarea de pendientes ya no exige WiFi. `dtu_send_level` lee hasta `OK`, 500 ms de silencio o 15 s (antes esperaba siempre 12 s). Probado en la placa a las 21:05 (id 241): SD + PC + **`Respuesta DTU: OK` en 3,9 s** + página.
+- El módem no puede enviar a GitHub: solo HTTP (GitHub exige HTTPS) y un único servidor.
+
+### Problemas y lecciones
+
+- Abrir el puerto USB-JTAG con pyserial reinició la placa varias veces. Una vez cortó el envío de la medición de las 21:00 (id 240): llegó a la PC y a la BD (el POST del módem ya había salido), pero no a la página. Otra vez la dejó en modo descarga y no salió con esptool: hizo falta el **botón RESET**.
+- Mediciones que no existen por cambios de firmware: 18:45 y 18:50 (modo banco) y 20:40–20:55 (placa desconectada para configurar el módem). La 18:40 (id 218) fue a la IP vieja de la PC.
+- El radar estuvo desconectado toda la tarde: todas las lecturas son `-1` / estado 1 (SIN RESPUESTA) en la BD, la PC y la página.
+
+### Comandos útiles
+
+```bash
+python3 Software/receptor_pc/receptor_udp.py            # desde la raíz del repo; guarda lecturas_pc.csv
+gh run list -R HecVelaz/Sistema-de-adquisicion-y-monitoreo-de-nivel-P4 -w "Lectura de la estacion" -L 3
+gh api "repos/HecVelaz/Sistema-de-adquisicion-y-monitoreo-de-nivel-P4/contents/datos.json?ref=datos" -H "Accept: application/vnd.github.raw+json"
+# Módem en modo comando (115200): "+++" → "a" → enviar "a" → "+ok"; AT+HTPURL, AT+HTPSV, ...; AT+S guarda y reinicia
+```
+
+### Commits
+
+- `fe41809` Envío de la lectura completa a la PC por UDP y lista de redes WiFi
+- `17a61b1` Página de monitoreo en GitHub Pages con nivel y velocidad (+ rama `datos` creada y Pages activado con origen GitHub Actions)
+- `938929f` PHP por el módem GPRS con respaldo WiFi; PC y página por WiFi
+
 ## 2026-11-19/20 — Radar en la placa, corte de red, estado en la BD y firmware con id
 
 ### Hecho

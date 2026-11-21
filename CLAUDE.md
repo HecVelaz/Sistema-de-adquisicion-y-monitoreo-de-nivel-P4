@@ -30,7 +30,7 @@ Trama al servidor: `d=<epoch>,<valor %.3f>\r\n`; éxito si la respuesta contiene
 - Al cerrar una sesión: `/cerrar`; al empezar: `/retomar`.
 - Las decisiones de alcance de `docs/DECISIONES.md` están acordadas con el usuario: no proponer revertirlas.
 - **Datos privados**: `documentos/Reportes/P4_1erParcial/` también contiene, solo en local y en `.gitignore`, la planilla `Evaluacion_Proyecto_4_Mecatronica_FIUNA.xlsx` (notas de los 16 equipos), `tarea.jpeg` (teléfono del profesor) y la captura del comentario del profesor. **Nunca subirlos**: el repo es público.
-- **Credenciales y servidor**: el SSID/clave del WiFi y la URL/IP del script de inserción del servidor van solo en `Software/Firmware_Final/components/wifi_envio/credenciales.h` (en `.gitignore`). No escribirlos en ningún otro archivo del repo.
+- **Credenciales y servidor**: los SSID/claves del WiFi, la URL/IP del script de inserción del servidor (también configurada en el módem DTU), la IP de la PC y el token de GitHub de la página van solo en `Software/Firmware_Final/components/wifi_envio/credenciales.h` (en `.gitignore`). No escribirlos en ningún otro archivo del repo; antes de cada commit, comprobar que no estén en el diff.
 - No subir `.pio/`, binarios ni archivos grandes nuevos (los videos van a Google Drive).
 - Nombres de carpeta sin espacios al final (Windows no puede clonarlos).
 
