@@ -72,3 +72,10 @@ Electrónica (integración + consumo/autonomía), Firmware (Store and Forward co
 - **Lista de redes WiFi** en orden de preferencia (FIUNA primero, para estar en la misma red que la PC); no un portal de configuración.
 - **Página de monitoreo en GitHub Pages, en este repo**, alimentada **directo por la ESP32** (`repository_dispatch` → Action → `datos.json` en la rama `datos`), no con la PC como puente, para que no dependa de la PC. Se descartó leer la BD con Actions porque la velocidad no está en la BD. La rama `datos` se reescribe con `--force` (un solo commit) para que el repo no crezca.
 - **Token de GitHub *fine-grained***, solo este repo, Contents: Read and write; solo en `credenciales.h`. Vence el 2027-01-19.
+
+## Movido desde CLAUDE.md (2026-11-21)
+
+Desde `Software/CLAUDE.md`.
+
+- Hora válida obligatoria: el 19/11/2026 el RTC estaba en el año 2000 (¿pila BT1?) y se enviaron `-1` con esas fechas a la base.
+- Main task stack de 3584 a 8192 por el cliente HTTP.

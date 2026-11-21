@@ -39,3 +39,9 @@ Procedimientos y tablas de los ensayos: `documentos/Reportes/P4_2doParcial/Plan_
 19. `ERC.rpt` (faltan PWR_FLAG) y `DRC.rpt` viejo.
 20. `sdkconfig` declara flash de 2 MB y el módulo tiene más; `Firmware_Pruebas/sdkconfig.defaults` habla de N8R8.
 21. Verificar la pila BT1 (CR2032) del DS3231.
+
+## Movido desde CLAUDE.md (2026-11-21)
+
+Desde `Software/CLAUDE.md`.
+
+- Revisar si el README raíz describe bien `components/` (en `Firmware_Pruebas` se llaman `led_blink`, `dtu`, `rtc`, `sensor`).

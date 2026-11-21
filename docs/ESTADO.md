@@ -65,3 +65,11 @@ Foto del estado actual. Se reescribe al cerrar cada sesión (`/cerrar`); la hist
 - `README.md` raíz: al día con P4 (arquitectura módem + WiFi + página, conectores, pinout, formatos).
 - Manuales y programa del módem en `Software/Moden/` (subidos; `Gm3Cfg.ini` no, tiene la IP del servidor).
 - En la respuesta a la evaluación se escribió "tenemos acceso al servidor para adaptarlo": no es así (solo a la BD). Explicarlo en el 2.º parcial.
+
+## Movido desde CLAUDE.md (2026-11-21)
+
+Desde `Software/CLAUDE.md`.
+
+- UDP broadcast a la PC probado en la red FIUNA el 20/11/2026: no aísla clientes.
+- Radar: 115200 y dirección 1 confirmados por Bluetooth el 19/11/2026.
+- Módem configurado por AT el 20/11/2026 (antes apuntaba a `insertarFecha.php`); parámetros en `Software/Moden/Moden.md`.
