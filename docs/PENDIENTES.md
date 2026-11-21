@@ -4,6 +4,8 @@ Tareas y próximos pasos, por prioridad. Lo terminado se borra de aquí y queda 
 
 ## Ya
 
+Procedimientos y tablas de los ensayos: `documentos/Reportes/P4_2doParcial/Plan_de_ensayos.md`.
+
 1. **Confirmar la fecha de entrega del 2.º parcial**: la registrada (16/11/2026) ya pasó. Define si entran los 7 días de disponibilidad.
 2. **Conectar el radar** (estuvo desconectado toda la tarde del 20/11) y revisar el día de datos que dejó la placa sola el 20/11 hasta ~18:00 (vista `Masi_estado_estacion`, huecos y duplicados).
 3. **Cortes de energía** con el firmware nuevo (desenchufar la placa), incluso justo durante la escritura en la SD y el envío: al volver, el id sigue y no se pierden pendientes.
@@ -33,10 +35,7 @@ Tareas y próximos pasos, por prioridad. Lo terminado se borra de aquí y queda 
 
 ## Prolijidad
 
-18. Guía del radar: agregar sin reposo, `0xEA60`, `0x07D8`, `0x07D7`, `0x07D9`.
-19. Regenerar desde KiCad el esquemático PDF de `planos/` y el BOM `.csv`.
-20. `README.md` raíz: esquema módem (PHP) + WiFi (PC y página), estructura de `components/`, pinout de conectores.
-21. `Software/Moden/` y `Software/Moden.rar` (sin subir): subir los manuales PDF del módem; el instalador `.exe` no.
-22. `ERC.rpt` (faltan PWR_FLAG) y `DRC.rpt` viejo.
-23. `sdkconfig` declara flash de 2 MB y el módulo tiene más; `Firmware_Pruebas/sdkconfig.defaults` habla de N8R8.
-24. Verificar la pila BT1 (CR2032) del DS3231.
+18. Regenerar desde KiCad el esquemático PDF de `planos/` y el BOM `.csv`.
+19. `ERC.rpt` (faltan PWR_FLAG) y `DRC.rpt` viejo.
+20. `sdkconfig` declara flash de 2 MB y el módulo tiene más; `Firmware_Pruebas/sdkconfig.defaults` habla de N8R8.
+21. Verificar la pila BT1 (CR2032) del DS3231.

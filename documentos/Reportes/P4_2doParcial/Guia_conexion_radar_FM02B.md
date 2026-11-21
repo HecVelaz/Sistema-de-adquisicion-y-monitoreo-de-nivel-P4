@@ -1,6 +1,6 @@
 # Guía de conexión e instalación del radar FM02B (P4)
 
-Guía práctica para armar la estación con el radar Luda/POLIVIR FM02B y la PCB V3, **sin módem DTU**: los datos salen por el **WiFi del ESP32-S3**.
+Guía práctica para armar la estación con el radar Luda/POLIVIR FM02B y la PCB V3. Los datos salen por dos caminos: el **módem DTU GPRS** (bornera J8) lleva cada medición al servidor PHP, y el **WiFi del ESP32-S3** la lleva a la PC del equipo y a la página de monitoreo (y es el respaldo del módem).
 
 Fuentes: los tres PDFs de esta carpeta (ficha del LDFM02_B, protocolo Modbus V3 e instrucciones de montaje), el PCB `Hardware/V3_Estacion_Nivel/Estacion_Nivel_V3.kicad_pcb` y las fotos de `Fotos/`.
 
@@ -16,17 +16,17 @@ Fuentes: los tres PDFs de esta carpeta (ficha del LDFM02_B, protocolo Modbus V3 
 
 ### Conectores de la placa (vista superior, como en la foto)
 
-| Conector | Dónde está | Qué es | Uso con el radar y WiFi |
+| Conector | Dónde está | Qué es | Uso |
 | -------- | ---------------- | ------------------------------ | ----------------------------- |
 | **J2** | Jack DC arriba a la izquierda | Entrada **12 V** | Salida 12 V del UPS |
 | **J9** | USB-C a la derecha | Entrada **5 V** (pasa por el diodo D8) | Salida USB del UPS (y programación) |
 | **J4** | Jack DC abajo a la derecha | Entrada **5 V** directa (sin diodo) | Alternativa a J9: usar **uno solo** |
 | **J3** | Bornera de 4, la de la **derecha** | Canal RS485 #1 (U1 → UART1) + 12 V | **Radar** |
-| **J8** | Bornera de 4, la de la izquierda | Canal RS485 #2 (U5 → UART2) + 12 V | **No usar** (era el módem) |
+| **J8** | Bornera de 4, la de la izquierda | Canal RS485 #2 (U5 → UART2) + 12 V | **Módem DTU GPRS** |
 
 Las borneras se numeran **de izquierda a derecha** (borne 1 a la izquierda) mirando la placa como en la foto:
 
-| Borne | J3 (radar) | J8 (módem, sin uso) |
+| Borne | J3 (radar) | J8 (módem DTU) |
 | --- | --- | --- |
 | 1 | +12 V | +12 V |
 | 2 | A1 | A2 |
@@ -49,12 +49,22 @@ Lo que ya trae la PCB en el canal de J3 (no hay que agregar nada):
 - Polarización: 4,7 kΩ de A1 a 3,3 V (R1) y 4,7 kΩ de B1 a GND (R2).
 - Protección TVS **SM712** (D1) en A1/B1.
 
-**J8 queda libre.** No hace falta desoldar nada; simplemente no se conecta.
+### Cableado del módem DTU (USR-GPRS232-730)
+
+| Módem | Borne de la PCB | Notas |
+| --- | --- | --- |
+| A | **J8-2 (A2)** | Va al SP3485 U5 → UART2 (TX GPIO5, RX GPIO6, DE/RE GPIO7) |
+| B | **J8-3 (B2)** | A con A y B con B, sin cruzar |
+| GND | **J8-4** | Recomendado: masa común con la placa |
+| 12 V | fuente aparte (o J8-1) | Probado el 20/11/2026 con la alimentación del módem aparte |
+
+- El módem tiene que tener la **antena** y el **chip** (Tigo, APN `internet.tigo.py`).
+- Su configuración (modo HTTP client, URL, servidor) se hace una vez por comandos AT desde la PC, con un adaptador USB y el programa `Software/Moden/USR-GM3-Setup-Software_V1.2.1.101.exe` o con un script. El detalle está en `Software/CLAUDE.md`.
 
 ### Alimentación
 
-- Radar: 9–24 V, típico **12 V a 130–160 mA** (~1,9 W). Los manuales piden que en los bornes del radar haya **al menos 7 V**. Con los 5 m de cable que trae no hay problema, pero si se alarga el cable hay que medirlo.
-- Los **12 V entran por el jack J2** y llegan directo a J3-1 (y J8-1). **No alimentan al ESP32.**
+- Radar: 9–24 V, típico **12 V a 130–160 mA** (~1,9 W); **medido: 126 mA a 12 V (~1,5 W)**. **No tiene modo de reposo**: consume eso todo el tiempo, también entre mediciones (para la autonomía con la UPS hay que contarlo así). Los manuales piden que en los bornes del radar haya **al menos 7 V**. Con los 5 m de cable que trae no hay problema, pero si se alarga el cable hay que medirlo.
+- Los **12 V entran por el jack J2** y llegan directo a J3-1 y J8-1. **No alimentan al ESP32.**
 - El ESP32 se alimenta con **5 V por J9 (USB-C) o por J4**, que van al AMS1117 → 3,3 V. Por eso hay que conectar **las dos** salidas del UPS: 12 V a J2 y 5 V a J9 o J4.
 - **Polaridad de J2:** antes de enchufar, medir que el **centro del plug** del UPS sea el **+**. Con la placa sin alimentar, el pin central del jack J2 tiene que dar continuidad con J3-1.
 - El WiFi del ESP32 tiene picos de ~350–500 mA en 3,3 V: usar una salida USB del UPS de al menos 1 A y un cable corto y bueno.
@@ -92,9 +102,9 @@ Capturas en `Fotos/Aplicacion/`. Equipo: *flowmeter*, n.º de serie `1a910004000
 
 Qué hacer con estos valores:
 
-1. **Señal de nivel = 4.** Una lectura con tan poca señal puede no ser confiable. Primero hay que ver cuánto da apuntando al agua del balde, a ~1 m, sin objetos cerca (la captura puede haber sido apuntando a la mesa o al piso). Si sigue baja, subir la **potencia de emisión de nivel** (7 → 3, o hasta 0) y volver a mirar la señal. La señal también aparece en el monitor serie del firmware.
+1. **Señal de nivel = 4.** Una lectura con tan poca señal puede no ser confiable. Primero hay que ver cuánto da apuntando al agua del balde, a ~1 m, sin objetos cerca (la captura puede haber sido apuntando a la mesa o al piso). Si sigue baja, subir la **potencia de emisión de nivel** (7 → 3, o hasta 0) y volver a mirar la señal. Se cambia desde la app o por Modbus con el registro `0x07D7` (tramas en la sección 5). La señal también aparece en el monitor serie del firmware.
 2. **Calibración −46 mm.** No se sabe si viene de fábrica o la cambió alguien. En el banco, comparar la distancia del radar con la cinta métrica a 3–4 alturas de agua:
-   - si la diferencia es **constante**, corregirla en este parámetro y anotar el valor anterior y el nuevo;
+   - si la diferencia es **constante**, corregirla en este parámetro (registro `0x07D8`, en pasos de 1 mm) y anotar el valor anterior y el nuevo;
    - si la diferencia **varía** con la altura, no es un problema de corrimiento: revisar la nivelación y el haz.
 3. **Ángulo 56,1°.** Según la figura del manual, con el radar nivelado el haz de velocidad queda a 55°. Es probable que esta lectura sirva para verificar la nivelación (≈ 55° = nivelado), pero hay que **confirmarlo una vez** con el nivel de burbuja antes de usarlo.
 4. **Altura de instalación.** Opcional: ponerla igual a la altura real del banco (en cm), así la app muestra el nivel del agua directamente y se puede comparar con la cinta.
@@ -185,6 +195,10 @@ Formato: **115200 8N1, dirección 1, función 03 (leer) / 06 (escribir 1 registr
 | `0x000F–10` | Velocidad superficial | `01 03 00 0F 00 02 F4 08` | float LE, m/s |
 | `0x006E` | Dirección del equipo | `01 03 00 6E 00 01 E5 D7` | fábrica 1 |
 | `0x006F` | Baud rate / 100 | `01 03 00 6F 00 01 B4 17` | en nuestro radar: 115200 |
+| `0x07D7` | Potencia de emisión de nivel (R/W) | `01 03 07 D7 00 01 35 46` | 0 = máxima … 7 = mínima (la nuestra: 7) |
+| `0x07D8` | Calibración de distancia (R/W) | `01 03 07 D8 00 01 05 45` | pasos de 1 mm (la nuestra: −46 mm) |
+| `0x07D9` | Sensibilidad de nivel (R/W) | `01 03 07 D9 00 01 54 85` | menor = más sensible (la nuestra: 5; fábrica 3) |
+| `0xEA60–63` | Identificación del equipo | `01 03 EA 60 00 04 70 0F` | `0xEA60` = `0x1A91`, el inicio del n.º de serie (`1a91000400000019`) |
 
 Notas:
 
@@ -193,52 +207,71 @@ Notas:
 - La tabla del manual dice que el baud de fábrica es `0x60` (9600), pero **nuestro radar está a 115200** (confirmado por Bluetooth el 19/11/2026), igual que dice la ficha.
 - La respuesta a una lectura de 1 registro tiene 7 bytes: `01 03 02 HH LL CRC CRC`.
 - **No escribir** registros de flujo, sección o algoritmo (`0x0061–0x0066`, `0x07E2`…): no hacen falta para medir nivel.
+- **Escribir la potencia de nivel** (función 06, CRC verificado): 7 → `01 06 07 D7 00 07 79 44` · 3 → `01 06 07 D7 00 03 78 87` · 0 → `01 06 07 D7 00 00 38 86`. El radar responde con la misma trama si la aceptó. Leer el registro antes y después, y anotar los dos valores.
+- **Calibración y sensibilidad** también se escriben con la función 06, pero antes de escribirlas hay que **leerlas** para confirmar cómo codifica el radar el valor (la calibración es negativa). Si hay dudas, usar la app.
+- El radar promedia con un **filtro de 128 muestras**: después de encenderlo o de cambiar un parámetro, tarda un rato en dar un valor estable. Por eso el firmware hace una lectura de descarte al arrancar y reintenta hasta 3 veces.
+- **No hay registro de temperatura.**
+- El manual dice que los registros "están en decimal", pero las tramas de ejemplo están en hexadecimal y son las que funcionan (`0x0001`, no `1` decimal convertido).
 
 ---
 
-## 6. Firmware adaptado (`Software/Firmware_Final`)
+## 6. Firmware (`Software/Firmware_Final`)
 
-El firmware ya está adaptado al radar y al WiFi. **Compila, pero todavía no se probó en la placa.**
+El firmware está **probado en la placa** con el radar (19/11/2026) y con el módem y el WiFi juntos (20/11/2026). El detalle técnico está en `Software/CLAUDE.md`.
 
 ### Sensor (`components/sensor_rs485/sensor_rs485.c`)
 
 | Antes (ultrasónico P3) | Ahora (radar FM02B) |
 | --- | --- |
 | 9600 baudios | **115200** (`SENSOR_BAUD_RATE`) |
-| Registro 0x0000 | **Registro 0x0001** (distancia, mm → m) |
-| DE/RE (GPIO4) manejado a mano con retardos | DE/RE manejado **por hardware** (modo RS485 half-duplex del UART, igual que el canal del módem en P3) |
+| Registro 0x0000 | **0x0001** (distancia, mm → m), **0x0004** (señal) y **0x01F4–F5** (velocidad) |
+| DE/RE (GPIO4) manejado a mano con retardos | DE/RE manejado **por hardware** (modo RS485 half-duplex del UART) |
 | Sin verificar el CRC | **Se verifica el CRC**, la dirección, la función y la cantidad de bytes; detecta excepciones Modbus |
-| — | Descarta lecturas < 100 mm (fuera de rango) y muestra la **señal en dB** en el monitor serie |
+| — | Estado de cada lectura: 0 OK, 1 sin respuesta, 2 respuesta inválida, 3 fuera de rango (< 100 mm) |
 
-Los pines **no cambian** (GPIO1/2/4, UART1, bornera J3). La dirección (1) y el baud (115200) se confirmaron por Bluetooth.
+Los pines **no cambian** (GPIO1/2/4, UART1, bornera J3).
 
-### Envío: WiFi en lugar del módem (`components/wifi_envio/`)
+### A dónde va cada medición (cada 5 min)
 
-- WiFi en modo estación con **reconexión automática**. Si al arrancar no hay red, espera 15 s y sigue: mide y guarda en la SD igual.
-- Cada dato se manda por **HTTP** al mismo script PHP que usaba el módem (`insertarMasi.php`), con la misma trama `d=<epoch>,<valor>` (ejemplo: `d=3242432,2.2`). Éxito = respuesta HTTP 200 que contiene `OK`. El *Store and Forward* (`temp.csv` + tarea de pendientes) no cambió.
-- No tenemos el código del PHP, así que no sabemos si lee `$_GET` o `$_POST`. Por eso el firmware hace un **POST a `...script.php?d=<epoch>,<valor>` con el mismo `d=...` en el cuerpo**: funciona en los dos casos (y con `$_REQUEST`), y es una sola petición, así que inserta una sola vez.
-- `modem_dtu` queda en el código pero ya no se usa; la bornera J8 y la UART2 (GPIO5/6/7) quedan libres.
-- Partición de la app ampliada a 1,5 MB (`platformio.ini`): con WiFi no entraba en 1 MB.
+| Destino | Por dónde | Qué va | Si falla |
+| --- | --- | --- | --- |
+| microSD `datos.csv` | — | línea completa: epoch, id, distancia (m), velocidad (m/s), señal (dB), estado | — |
+| Servidor PHP (`insertarMasi.php`) | **Módem GPRS** (J8) | `d=<epoch>,<distancia>` (`-1` si el radar falló) | se reintenta por **WiFi**; si también falla, queda en `temp.csv` y la tarea de pendientes lo reenvía |
+| PC del equipo | WiFi, UDP broadcast, puerto 5005 | la misma línea de `datos.csv` | queda solo en la SD |
+| Página de monitoreo (GitHub Pages) | WiFi, HTTPS | la misma línea de `datos.csv` | queda en la SD y en la PC |
+
+- El servidor solo acepta los 2 campos de `d=`: la velocidad y la señal van a la SD, la PC y la página.
+- Página: https://hecvelaz.github.io/Sistema-de-adquisicion-y-monitoreo-de-nivel-P4/
+- Receptor en la PC: `python3 Software/receptor_pc/receptor_udp.py` (guarda `lecturas_pc.csv`). En Linux hay que abrir el puerto: `sudo ufw allow 5005/udp`.
+- **Modo banco** (`PLATFORMIO_BUILD_FLAGS=-DMODO_BANCO pio run -t upload`): lee el radar cada 2 s y lo manda solo a la PC. Es el modo para las pruebas de exactitud. Para volver al normal, cargar sin flags.
 
 ### Lo que hay que completar antes de cargar
 
 Editar **`Software/Firmware_Final/components/wifi_envio/credenciales.h`**. Este archivo **no se sube al repo** (está en `.gitignore`); la plantilla es `credenciales_ejemplo.h`.
 
 ```c
-#define WIFI_SSID          "nombre_de_la_red"
-#define WIFI_CLAVE         "clave_de_la_red"
-#define SERVIDOR_URL       "http://<IP del servidor>/level/insertarMasi.php"   // sin "?d=..." 
+#define WIFI_REDES { \
+    { "red_preferida", "clave_1" }, \
+    { "red_de_respaldo", "clave_2" }, \
+}
+#define SERVIDOR_URL "http://<IP del servidor>/level/insertarMasi.php"   // sin "?d=..."
+#define PC_IP        "255.255.255.255"                                 // broadcast a la PC
+#define PC_PUERTO    5005
+#define GITHUB_REPO  "HecVelaz/Sistema-de-adquisicion-y-monitoreo-de-nivel-P4"
+#define GITHUB_TOKEN "github_pat_..."   // token fine-grained, solo este repo, Contents: Read and write
 ```
 
-- En la copia local de `credenciales.h` **la URL ya está cargada**. Faltan solo el SSID y la clave del WiFi.
-- **La IP del servidor no se escribe en el repo ni en esta guía.** Es un script que inserta en la base de datos sin contraseña, y el repo es público. Se pasa por un canal privado del equipo.
-- Después: `pio run -t upload` y `pio device monitor -b 115200`. En el monitor tienen que verse `Conectado. IP ... | RSSI ... dBm`, `Distancia: x.xxx m | senal: NN dB` y `HTTP 200 | respuesta: ...OK`.
+- La placa usa la primera red de la lista que encuentra; si una falla 3 veces seguidas, pasa a la siguiente.
+- **La IP del servidor, las claves y el token no se escriben en el repo ni en esta guía.** Se pasan por un canal privado del equipo. El token vence (el actual, el 19/01/2027): al vencer, la página deja de recibir datos hasta cargar uno nuevo.
+- Después: `pio run -t upload` y `pio device monitor -b 115200`. En el monitor tienen que verse `Conectado a "<red>"`, `Distancia: x.xxx m | senal: NN dB | velocidad: ...`, `Respuesta DTU: OK` y `GitHub: lectura enviada a la pagina`.
+- Con la placa conectada al USB de la PC, después de cargar puede quedar en `waiting for download`: apretar **RESET**.
 
 ### Cosas del WiFi a tener en cuenta en el lugar
 
 - El ESP32-S3 solo usa **2,4 GHz**.
-- Las redes institucionales con **portal cautivo** (página de login) no funcionan con el ESP32. Hace falta una red con WPA2 normal; para el banco, alcanza con el hotspot de un celular.
+- Las redes con **portal cautivo** (página de login) no funcionan con el ESP32. FIUNA (WPA2) funciona; para el banco también sirve el hotspot de un celular.
 - El módulo WROOM-1 tiene **antena impresa**: una **caja metálica la bloquea**. Mirar el RSSI que muestra el monitor serie (mejor que −70 dBm) en el lugar definitivo.
+- Para que la PC reciba por broadcast, tiene que estar en la **misma red** que la placa.
 
 ---
 
@@ -246,7 +279,8 @@ Editar **`Software/Firmware_Final/components/wifi_envio/credenciales.h`**. Este 
 
 - [ ] Radar probado solo (Bluetooth o USB–RS485): responde en la dirección 1; baud confirmado.
 - [ ] UPS desconectado durante el cableado.
-- [ ] J3 (bornera derecha), de izquierda a derecha: rojo, verde, amarillo, negro. J8 sin conectar.
+- [ ] J3 (bornera derecha), de izquierda a derecha: rojo, verde, amarillo, negro.
+- [ ] Módem en J8: A → J8-2, B → J8-3, GND → J8-4; módem con 12 V, antena y chip.
 - [ ] 12 V del UPS → jack J2 (+ al centro, verificado); 5 V → USB-C J9 (o J4, nunca los dos).
 - [ ] Sin corto entre J3-1 y J3-4; entre J3-2 y J3-3 hay ~120 Ω.
 - [ ] Conector de aviación con los puntos rojos alineados y el "clic".
@@ -255,8 +289,8 @@ Editar **`Software/Firmware_Final/components/wifi_envio/credenciales.h`**. Este 
 - [ ] Haz dentro del balde (H ≤ ~1,2 m con balde de 30 cm; agua a más de 10 cm).
 - [ ] Sin metal ni ventiladores en el cono; señal `0x0004` > 30 dB.
 - [ ] Cable con bucle en "U" y sin peso sobre el conector.
-- [ ] `credenciales.h` completado (SSID y clave; la URL ya está) y **no subido** al repo.
-- [ ] Firmware cargado; el monitor muestra la distancia, la señal y `HTTP 200 ... OK`.
+- [ ] `credenciales.h` completado (redes WiFi, URL, PC, token) y **no subido** al repo.
+- [ ] Firmware cargado; el monitor muestra la distancia, la señal, `Respuesta DTU: OK` y `GitHub: lectura enviada a la pagina`.
 
 ## 8. Si algo falla
 
@@ -269,3 +303,8 @@ Editar **`Software/Firmware_Final/components/wifi_envio/credenciales.h`**. Este 
 | La placa se reinicia al transmitir por WiFi | USB flojo o débil | Cable USB-C corto; salida ≥ 1 A |
 | No conecta al WiFi | Portal cautivo, 5 GHz o caja metálica | Usar una red WPA2 de 2,4 GHz; mejorar la ubicación de la antena |
 | `HTTP 404/405` o sin `OK` | URL mal escrita, o el servidor no responde `OK` | Revisar `SERVIDOR_URL`; ver en el monitor la respuesta que devuelve el servidor |
+| `Sin respuesta del DTU` | A/B invertidos o sueltos en J8, módem sin 12 V, sin antena o sin señal | Revisar el cableado y la alimentación; consultar la señal con `AT+CSQ` desde la PC (> 15 de 31 es aceptable) |
+| `Modem sin OK. Reintentando por WiFi` | El módem no recibió respuesta del servidor (GPRS caído, crédito, URL del módem) | Revisar la URL y el servidor configurados en el módem (`AT+HTPURL`, `AT+HTPSV`) |
+| `GitHub: HTTP 401/403/404` | Token vencido, sin permiso Contents o sin el repo seleccionado | Editar o renovar el token en GitHub; si cambia, cargarlo en `credenciales.h` y recargar |
+| La PC no recibe nada | Otra red, firewall, receptor cerrado | Misma red que la placa; `sudo ufw allow 5005/udp`; abrir `receptor_udp.py` |
+| `waiting for download` tras cargar | Reinicio por USB en modo descarga | Apretar RESET |

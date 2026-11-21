@@ -30,6 +30,8 @@ gh api "repos/HecVelaz/Sistema-de-adquisicion-y-monitoreo-de-nivel-P4/contents/d
 # Módem en modo comando (115200): "+++" → "a" → enviar "a" → "+ok"; AT+HTPURL, AT+HTPSV, ...; AT+S guarda y reinicia
 ```
 
+- **Documentación** (después del cierre): `README.md` reescrito para P4; guía del radar al día (módem en J8, envíos, `credenciales.h` nuevo, registros `0x07D7`/`0x07D8`/`0x07D9`/`0xEA60` con tramas y CRC verificados, sin reposo, filtro de 128 muestras, fallas del módem y de GitHub) y su PDF regenerado (9 págs.); **plan de ensayos** `P4_2doParcial/Plan_de_ensayos.md`. Manuales y programa del módem subidos (`8d829f5`, `ac7e566`); `Gm3Cfg.ini` no (tiene la IP del servidor).
+
 ### Commits
 
 - `fe41809` Envío de la lectura completa a la PC por UDP y lista de redes WiFi

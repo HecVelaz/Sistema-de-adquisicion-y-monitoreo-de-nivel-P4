@@ -60,7 +60,8 @@ Foto del estado actual. Se reescribe al cerrar cada sesión (`/cerrar`); la hist
 
 ## Documentación
 
-- Guía de armado: `P4_2doParcial/Guia_conexion_radar_FM02B.md` y `.pdf`. Le faltan los datos nuevos de los manuales (sin reposo, `0xEA60`, `0x07D8`, `0x07D7`, `0x07D9`).
-- `README.md` raíz: no describe el esquema módem + WiFi + página ni la estructura real de `components/`.
-- Manuales del módem en `Software/Moden/` (y `Software/Moden.rar`): sin subir; el instalador `.exe` no debe ir al repo.
+- Guía de armado: `P4_2doParcial/Guia_conexion_radar_FM02B.md` y `.pdf` (9 págs.), al día: radar, módem en J8, envíos, registros nuevos y fallas.
+- **Plan de ensayos** con procedimientos y tablas para completar: `P4_2doParcial/Plan_de_ensayos.md`.
+- `README.md` raíz: al día con P4 (arquitectura módem + WiFi + página, conectores, pinout, formatos).
+- Manuales y programa del módem en `Software/Moden/` (subidos; `Gm3Cfg.ini` no, tiene la IP del servidor).
 - En la respuesta a la evaluación se escribió "tenemos acceso al servidor para adaptarlo": no es así (solo a la BD). Explicarlo en el 2.º parcial.
