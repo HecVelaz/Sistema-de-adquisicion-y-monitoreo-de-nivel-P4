@@ -1,0 +1,20 @@
+% Cadena de datos de la página de monitoreo (GitHub Pages)
+\begin{tikzpicture}[
+    caja/.style={draw=gray!60!black, fill=white, rounded corners=3pt, align=center,
+        font=\footnotesize, minimum height=1.25cm, text width=3.1cm, inner sep=3pt},
+    prop/.style={caja, fill=agua!8, draw=agua!70!black},
+    flecha/.style={-{Stealth}, thick, gray!60!black},
+    lbl/.style={font=\scriptsize, align=center, text=gray!40!black}
+]
+    \node[prop] (esp) {\textbf{ESP32-S3}\\línea de \texttt{datos.csv}\\cada 5 min};
+    \node[caja, right=1.25cm of esp] (api) {\textbf{API de GitHub}\\\texttt{repository\_dispatch}\\(evento \texttt{lectura})};
+    \node[caja, right=1.25cm of api] (act) {\textbf{GitHub Action}\\valida la línea y la\\agrega a \texttt{datos.json}};
+    \node[caja, right=1.25cm of act] (pag) {\textbf{Página}\\GitHub Pages\\(HTML + Chart.js)};
+    \node[caja, below=0.9cm of act, text width=3.1cm, minimum height=0.9cm] (rama) {rama \texttt{datos}: últimos 30 días, un solo commit};
+    \node[caja, below=0.9cm of pag, text width=2.2cm, minimum height=0.9cm] (nav) {navegador\\(PC o celular)};
+    \draw[flecha] (esp) -- node[lbl, above] {HTTPS} node[lbl, below] {token} (api);
+    \draw[flecha] (api) -- (act);
+    \draw[flecha] (act) -- (rama);
+    \draw[flecha] (rama.east) -- ++(0.35,0) |- node[lbl, pos=0.25, right] {lee cada\\2 min} ([yshift=-0.25cm]pag.west);
+    \draw[flecha] (pag) -- (nav);
+\end{tikzpicture}

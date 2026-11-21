@@ -106,16 +106,22 @@ Para este segundo parcial el sensor ultrasónico se reemplazó por un
 de 80~GHz ($\pm$3~mm) y la velocidad superficial con otra de 24~GHz. Se escribió
 su driver Modbus RTU, se agregó un \textbf{identificador correlativo} y un
 \textbf{estado} a cada medición, se protegió la escritura en la microSD contra
-cortes y se sumó el \textbf{envío por WiFi} como segundo modo de comunicación
-junto al módem GPRS. El radar se montó con su kit comercial en un
+cortes y se rehízo la comunicación: el dato va al servidor por el
+\textbf{módem GPRS} y, si este falla, por \textbf{WiFi}; por WiFi la lectura
+completa llega además a una \textbf{página de monitoreo propia} publicada en
+GitHub Pages. El radar se montó con su kit comercial en un
 \textbf{banco de laboratorio} que simula la instalación: un perfil en voladizo
 sobre un balde con agua.
 
 Resultados principales: el radar respondió a la primera (115\,200 baudios,
 dirección 1, sin errores de CRC); su consumo es de \textbf{126~mA a 12~V
 ($\approx$1,5~W)}; en el primer corte de red se recuperaron \textbf{7 de 7
-datos, sin perdidos ni duplicados}, en 1~min 36~s; y la estación funciona sola,
-enviando por WiFi cada 5 minutos, desde el 20 de noviembre. La medición de
+datos, sin perdidos ni duplicados}, en 1~min 36~s; el módem confirmó cada envío
+en unos 4~s; y desde el 20/11 a las 22:00 la estación midió \textbf{todos los
+turnos de 5 minutos sin saltos de id}, mientras la página recibió el 99\,\% de
+ellos. Como línea de base, los 9 meses de datos de Proyecto~3 dan una
+disponibilidad de \textbf{88,2\,\%}, y dos tercios de lo que falta son solo 6
+caídas de más de un día. La medición de
 \textbf{velocidad} queda en espera: necesita agua en movimiento y el
 laboratorio no tiene un canal.
 
@@ -127,12 +133,16 @@ submission the ultrasonic sensor was replaced by a \textbf{Luda/POLIVIR FM02B
 radar} that measures distance to the water (80~GHz, $\pm$3~mm) and surface
 velocity (24~GHz). A Modbus RTU driver was written, each reading now carries a
 sequential \textbf{id} and a \textbf{status} code, microSD writes were made
-power-loss tolerant, and \textbf{WiFi} was added as a second transmission mode
-alongside the GPRS modem. The radar was mounted with its commercial bracket on
+power-loss tolerant. Readings now reach the server through the \textbf{GPRS
+modem} with \textbf{WiFi} as backup, and the full record is also published over
+WiFi to the team's own \textbf{monitoring page} on GitHub Pages. The radar was mounted with its commercial bracket on
 a \textbf{laboratory test bench} over a water bucket. The radar answered at the
 first attempt, draws \textbf{126~mA at 12~V}, and in the first network outage
-test \textbf{7 of 7 readings were recovered} with no losses or duplicates. The
-station has been running unattended since November 20. Velocity testing is on
+test \textbf{7 of 7 readings were recovered} with no losses or duplicates.
+Since November 20 the station has taken every 5-minute reading without id
+gaps. The 9 months of data from the previous station show \textbf{88.2\,\%
+availability}, two thirds of the missing data being six outages longer than a
+day. Velocity testing is on
 hold until an open channel with flowing water is available.
 
 % ======================================================
@@ -170,6 +180,9 @@ este parcial. La tabla resume en qué quedó cada uno.
             yendo la trama de dos campos (sección~\ref{sec:trama}). & \REAL\ \CURSO \\
         microSD tolerante a cortes & \emph{Mutex}, \texttt{fsync} y
             recuperación de la cola al arrancar. & \REAL \\
+        Modo módem y modo WiFi & Al servidor por GPRS con respaldo WiFi;
+            probado en la placa: \texttt{OK} en 3,9 s
+            (sección~\ref{sec:modos}). & \REAL \\
         Montaje del sensor en banco & Radar con su kit sobre un perfil en
             voladizo, nivelado con burbuja. & \REAL \\
         Exactitud ($\leq\pm$10 mm) & Comunicación y distancia verificadas;
@@ -177,11 +190,14 @@ este parcial. La tabla resume en qué quedó cada uno.
         Cortes de red ($\geq$ 10) & 1 corte: 7/7 recuperados, 0 perdidos,
             0 duplicados. & \CURSO \\
         Cortes de energía ($\geq$ 10) & Firmware listo; falta el ensayo. & \CURSO \\
-        Consumo y autonomía & Radar: 126 mA a 12 V. Falta el ESP32 y la
-            descarga de la UPS. & \CURSO \\
-        Disponibilidad 7 días & Estación midiendo sola desde el 20/11. & \CURSO \\
-        Web propia & La base de datos ya marca el estado del dato y de la
-            estación; la web está en desarrollo. & \CURSO \\
+        Consumo y autonomía & Radar: 126 mA a 12 V. Descarga de la UPS en
+            curso desde el 21/11 15:25; falta el ESP32 y el módem. & \CURSO \\
+        Disponibilidad 7 días & Desde el 20/11 22:00, todos los turnos
+            medidos (id continuo); 99\,\% en la página. & \CURSO \\
+        Línea de base de P3 & 9 meses: disponibilidad 88,2\,\%, huecos por
+            duración y por mes (sección~\ref{sec:linea_base}). & \REAL \\
+        Web propia & Página en GitHub Pages con nivel, velocidad, señal,
+            antigüedad del dato, estado y alarma (sección~\ref{sec:web}). & \REAL \\
         Velocidad del agua & El firmware la lee; falta un canal con agua en
             movimiento. & \ESPERA \\
         Instalación en el arroyo & Depende del Departamento de Mecánica y
@@ -265,18 +281,19 @@ perderlo ante cortes, con una exactitud medida en banco de laboratorio.
         \textbf{Área} & \textbf{Criterio de aceptación} & \textbf{Resultado} & \textbf{Estado} \\
         \midrule
         Electrónica & Integrar radar, RTC, microSD y comunicación; consumo
-            por módulo y autonomía medidos. & Radar integrado en J3; WiFi y
-            módem en la misma placa. Radar: 126 mA a 12 V. & \CURSO \\
+            por módulo y autonomía medidos. & Radar en J3 y módem en J8
+            funcionando juntos en la placa. Radar: 126 mA a 12 V; autonomía
+            en ensayo. & \CURSO \\
         Firmware & 0 perdidos y 0 duplicados en $\geq$ 10 cortes;
             disponibilidad $\geq$ 95\,\% en 7 días. & Corte n.º 1: 7/7
-            recuperados, 0 perdidos, 0 duplicados. Funcionando sola desde el
-            20/11. & \CURSO \\
+            recuperados, 0 perdidos, 0 duplicados. Desde el 20/11 22:00, sin
+            saltos de id. & \CURSO \\
         Montaje & Radar con su kit en banco; antena nivelada y haz libre. &
             Montado sobre perfil en voladizo, nivelado con burbuja, haz dentro
             del balde. & \REAL \\
         Interfaz & Históricos, antigüedad del dato, estado del sensor y
-            alarma. & Estado del dato y de la estación ya calculados en la
-            base de datos. & \CURSO \\
+            alarma. & Página con históricos de 24 h, 7 y 30 días, antigüedad del
+            dato, estado del sensor y de la estación, y alarma. & \REAL \\
         Validación & Error $\leq\pm$10 mm frente a cinta métrica. & Ver
             sección~\ref{sec:exactitud}. & \CURSO \\
         \bottomrule
@@ -291,44 +308,75 @@ perderlo ante cortes, con una exactitud medida en banco de laboratorio.
 \subsection{Diagrama en bloques}
 
 La PCB es la misma de Proyecto~3. El radar ocupa el canal RS485 \#1 (bornera
-J3) que antes usaba el sensor ultrasónico, y el canal \#2 (J8) queda para el
-módem. Los 12~V de la UPS entran por J2 y van directo a las borneras; el ESP32
+J3) que antes usaba el sensor ultrasónico, y el canal \#2 (J8) lo usa el
+módem GPRS. Los 12~V de la UPS entran por J2 y van directo a las borneras; el ESP32
 se alimenta con 5~V por USB-C (J9) o por el jack J4.
 
 \begin{figure}[H]
     \centering
     \resizebox{\textwidth}{!}{\input{diagramas/bloques.tex}}
-    \caption{Arquitectura del sistema con el radar FM02B y los dos modos de envío.}
+    \caption{Arquitectura del sistema: radar FM02B, módem GPRS hacia el servidor y WiFi como respaldo y hacia la PC y la página.}
 \end{figure}
 
 \subsection{Modos de comunicación}
+\label{sec:modos}
 
-La estación tiene dos caminos hacia el servidor. Los dos usan la misma trama,
-la misma cola \emph{Store and Forward} y el mismo mutex de envío; solo cambia
-el medio.
+La estación usa los dos medios a la vez, cada uno para lo que mejor sabe
+hacer. El dato oficial va al servidor del grupo de investigación por el
+\textbf{módem GPRS}, que no depende de una red WiFi en el sitio; si el módem no
+confirma, se reintenta por \textbf{WiFi}, y si fallan los dos queda en la cola
+de la microSD. La lectura completa, con velocidad y señal, sale por WiFi hacia
+la PC del laboratorio y hacia la página de monitoreo, porque el módem solo
+habla HTTP con un único servidor y GitHub exige HTTPS.
 
 \begin{table}[H]
     \centering
     \small
-    \caption{Modo WiFi y modo módem.}
-    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.6cm}LL}
+    \caption{Destinos de cada medición y medio usado.}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{3.2cm}L>{\raggedright\arraybackslash}p{2.3cm}}
         \toprule
-        & \textbf{Modo WiFi} & \textbf{Modo módem GPRS} \\
+        \textbf{Destino} & \textbf{Qué recibe} & \textbf{Por dónde} & \textbf{Si falla} \\
         \midrule
-        Hardware & Antena impresa del ESP32-S3 (2,4 GHz). & Módem DTU USR-IOT
-            en J8 (UART2: GPIO5/6, RTS GPIO7). \\
-        Envío & HTTP POST al script del servidor; éxito si responde
-            \texttt{OK}. & Trama serie a 115\,200; el módem la reenvía por
-            GPRS; éxito si responde \texttt{OK}. \\
-        Hora & NTP al arrancar, guardada en el RTC. & RTC DS3231M. \\
-        Dónde sirve & Sitio con red WiFi WPA2 (laboratorio, colegio). &
-            Sitio sin WiFi (orilla del arroyo). \\
-        Estado & \REAL\ probado con el radar; funcionando desde el 20/11. &
-            \CURSO\ validado en P3 durante 9 meses; se reintegra con el
-            radar. \\
+        Servidor (PHP + base de datos) & \texttt{d=<epoch>,}\newline\texttt{<distancia>} &
+            \textbf{Módem GPRS} (modo HTTPD, POST); si no hay \texttt{OK},
+            WiFi (HTTP POST) & Cola en la microSD (\texttt{temp.csv}) \\
+        Página de monitoreo & Línea completa de \texttt{datos.csv} & WiFi,
+            HTTPS a la API de GitHub & Queda en la microSD y la PC \\
+        PC del laboratorio & Línea completa de \texttt{datos.csv} & WiFi, UDP
+            \emph{broadcast} (puerto 5005) & Queda en la microSD \\
+        microSD & Línea completa & SPI, siempre & -- \\
         \bottomrule
     \end{tabularx}
 \end{table}
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Características de cada medio.}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.6cm}LL}
+        \toprule
+        & \textbf{Módem GPRS} & \textbf{WiFi} \\
+        \midrule
+        Hardware & USR-GPRS232-730 en J8 (UART2: GPIO5/6, RTS GPIO7), 12~V
+            aparte. & Antena impresa del ESP32-S3 (2,4 GHz). \\
+        Configuración & Comandos AT desde la PC: modo HTTPD, POST al script,
+            \emph{timeout} 10~s, APN de la operadora. & Lista de redes en
+            orden de preferencia; tras 3 desconexiones pasa a la siguiente. \\
+        Éxito & El módem devuelve solo el cuerpo de la respuesta:
+            \texttt{OK}. & HTTP 200 con \texttt{OK} (servidor) o 204
+            (GitHub). \\
+        Hora & RTC DS3231M. & NTP al arrancar, escrita en el RTC. \\
+        Dónde sirve & Cualquier sitio con cobertura celular (orilla del
+            arroyo). & Sitio con red WiFi (laboratorio, colegio). \\
+        Estado & \REAL\ probado con el radar: \texttt{OK} en 3,9~s, señal
+            25--27/31. & \REAL\ en uso desde el 19/11. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+Si el módem insertó el dato pero su \texttt{OK} se perdió, el reintento por
+WiFi lo duplica. Se aceptó ese riesgo porque perder un dato es peor que
+repetirlo, y el duplicado se detecta por la hora: los turnos son fijos.
 
 \subsection{Comunicaciones y pines}
 
@@ -473,7 +521,7 @@ de serie \texttt{1a91000400000019} y firmware V25.
     \end{subfigure}\hfill
     \begin{subfigure}[b]{0.2\textwidth}
         \centering
-        \includegraphics[height=3.8cm,trim=0 0 500 0,clip]{radar_cables.jpg}
+        \includegraphics[height=3.8cm]{radar_cables_rec.jpg}
         \caption{Hilos.}
     \end{subfigure}
     \caption{Radar FM02B: la antena de nivel mira hacia abajo y la cara
@@ -616,10 +664,11 @@ los pendientes. Lo nuevo se resume en la tabla.
         microSD & Dos tareas escribían sin protección. & \emph{Mutex},
             \texttt{fflush} + \texttt{fsync} y recuperación de la cola tras un
             corte. \\
-        Envío & Módem GPRS. & WiFi o módem GPRS. \\
+        Envío & Módem GPRS. & Al servidor por módem GPRS con respaldo
+            WiFi; línea completa a la PC (UDP) y a la página (HTTPS). \\
         Hora & Solo el RTC. & NTP al arrancar; sin hora válida no se mide. \\
-        Pruebas & -- & \textbf{Modo banco}: lee el radar cada 2 s y lo
-            muestra, sin guardar ni enviar. \\
+        Pruebas & -- & \textbf{Modo banco}: lee el radar cada 2 s, lo
+            muestra y lo manda a la PC, sin guardar ni enviar al servidor. \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -635,8 +684,8 @@ los pendientes. Lo nuevo se resume en la tabla.
 Cuando el envío falla, el dato queda en \texttt{temp.csv}. La tarea de
 pendientes lo reenvía en orden (FIFO) y lo borra recién cuando el servidor
 confirma con \texttt{OK}. Para no chocar con el ciclo principal, solo trabaja
-si faltan más de 35~s para el próximo turno, y ya no intenta enviar si no hay
-conexión.
+si faltan más de 35~s para el próximo turno, y prueba los dos medios: primero
+el módem y después el WiFi.
 
 \begin{figure}[!htbp]
     \centering
@@ -655,12 +704,14 @@ sigue yendo la trama de siempre} y el registro completo se guarda en la
 microSD. Así, los perdidos y duplicados se verifican cruzando el id de la
 microSD con la base de datos; como los turnos son fijos, también se detectan
 por la hora. La trama nueva queda lista para cuando el administrador habilite
-un script nuevo.
+un script nuevo. Mientras tanto, la misma línea completa se envía por WiFi a la
+PC y a la página, así la velocidad y la señal se ven en tiempo real aunque el
+servidor no las guarde.
 
 \begin{figure}[!htbp]
     \centering
     \input{diagramas/trama.tex}
-    \caption{Trama enviada al servidor y registro completo en la microSD.}
+    \caption{Trama enviada al servidor y línea completa (microSD, PC y página).}
 \end{figure}
 
 Cada línea de \texttt{datos.csv} pesa unos 32 bytes. A 288 lecturas por día son
@@ -687,7 +738,7 @@ un límite.
 
 Para los ensayos de exactitud el firmware se compila con la opción
 \texttt{-DMODO\_BANCO}: lee el radar cada 2~s y muestra distancia, señal y
-velocidad en el monitor serie, sin guardar ni enviar. El intervalo de
+velocidad en el monitor serie y en la PC, sin guardar ni enviar al servidor. El intervalo de
 producción (5~min) también se puede cambiar al compilar, lo que permitió hacer
 el ensayo de corte de red con turnos de 1~min.
 
@@ -978,6 +1029,8 @@ cuantifica.
         \midrule
         Comunicación & Lecturas del radar con el firmware. & Sin errores
             de CRC & \REAL \\
+        Envío por módem & Trama al servidor por GPRS desde la placa. &
+            \texttt{OK} del servidor & \REAL \\
         Exactitud & $\geq$ 4 alturas $\times$ 10 lecturas sobre agua, contra
             cinta métrica. & $\leq\pm$10 mm & \CURSO \\
         Consumo & Corriente de cada módulo con fuente de laboratorio y
@@ -986,9 +1039,11 @@ cuantifica.
             perdidos, 0 duplicados & \CURSO\ (1 de 10) \\
         Cortes de energía & $\geq$ 10, incluso durante la escritura. & 0
             perdidos, 0 duplicados & \CURSO \\
-        Disponibilidad & 7 días continuos a 5 min. & $\geq$ 95\,\% & \CURSO \\
+        Disponibilidad & 7 días continuos a 5 min. & $\geq$ 95\,\% & \CURSO\ (desde 20/11) \\
+        Línea de base & 9 meses de datos de P3 en la base de datos. & Se
+            informa & \REAL \\
         Autonomía & Corte de red eléctrica con la UPS cargada. & Se informa &
-            \CURSO \\
+            \CURSO\ (desde 21/11) \\
         Velocidad & Agua en movimiento en un canal. & $\pm$0,01 m/s (ficha) &
             \ESPERA \\
         \bottomrule
@@ -1072,22 +1127,35 @@ medidor USB; mientras tanto se usa un valor estimado.
 \begin{table}[H]
     \centering
     \small
-    \caption{Balance de energía del modo WiFi.}
+    \caption{Balance de energía de la estación completa.}
     \begin{tabular}{lrl}
         \toprule
         \textbf{Consumidor} & \textbf{Potencia} & \textbf{Origen} \\
         \midrule
         Radar FM02B & 1,5 W & medido \\
         ESP32-S3 + WiFi + periféricos & 0,5--1 W & estimado, a medir \\
+        Módem GPRS (reposo y ráfagas de envío) & -- & a medir \\
         \midrule
-        Total & 2--2,5 W & \\
+        Total sin módem & 2--2,5 W & \\
         Batería UPS (16\,000 mAh a 3,7 V, 80\,\% de eficiencia) & $\approx$ 47 Wh & \\
-        \textbf{Autonomía estimada} & \textbf{19--23 h} & a confirmar con descarga \\
+        Autonomía estimada sin módem & 19--23 h & cota superior \\
+        \textbf{Autonomía medida (radar + placa + módem)} & \completar{h} & ensayo del 21/11 \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-En modo módem se suma el consumo del DTU, que se medirá al reintegrarlo.
+\textbf{Ensayo de autonomía.} El 21/11/2026 a las 15:25 se desconectó la UPS
+cargada de la red eléctrica, con el radar, la placa y el módem conectados. La
+estación sigue midiendo y enviando con la batería, de modo que la hora del
+último dato que llega al servidor y a la página marca el apagado sin necesidad
+de vigilarla. Al volver la energía se verifica además que el id continúe y que
+no se pierdan los pendientes (corte de energía n.º~1).
+
+\begin{resultado}{Resultado del ensayo de autonomía}
+Inicio: 21/11/2026 15:25. Último dato recibido: \completar{fecha y hora}.
+\textbf{Autonomía: \completar{h}}. Al reconectar: id \completar{continúa / no},
+pendientes \completar{recuperados}.
+\end{resultado}
 
 \subsection{Corte de red}
 
@@ -1106,30 +1174,143 @@ perdidas, 0 duplicadas} (verificado en la base de datos). La cola quedó vacía
 \textbf{1~min 36~s} después de volver la red.
 \end{resultado}
 
-Faltan 9 cortes de distintos tipos (sin internet pero con WiFi, cortos de menos
-de 1~min y largos de más de 10~min).
+Este corte se hizo cuando la estación enviaba solo por WiFi. Faltan 9 cortes
+de distintos tipos: sin internet pero con WiFi, cortos de menos de 1~min,
+largos de más de 10~min y, con el firmware actual, WiFi caído con el módem
+enviando (el dato debe seguir llegando al servidor) y módem sin señal con WiFi
+(debe salir por WiFi), contando los duplicados.
+
+\subsection{Envío por el módem GPRS}
+
+El módem USR-GPRS232-730 se configuró por comandos AT~\cite{usrgprs} desde la PC con un
+adaptador USB--serie: modo HTTPD, método POST, ruta del script de inserción,
+\emph{timeout} de 10~s, filtro de cabeceras activado (al puerto serie vuelve
+solo el cuerpo de la respuesta) y el APN de la operadora. Primero se envió una
+trama de prueba desde la PC y después se conectó a J8.
+
+\begin{resultado}{Resultado}
+Trama de prueba desde la PC: \texttt{d=1795218343,-1.000} $\to$ \texttt{OK}.
+Desde la placa, con el radar: medición guardada en la microSD, enviada a la PC,
+\textbf{\texttt{Respuesta DTU: OK} en 3,9~s} y publicada en la página, en el
+mismo ciclo. Señal celular 25--27 de 31.
+\end{resultado}
+
+Antes el firmware esperaba siempre 12~s la respuesta del módem; ahora deja de
+leer al recibir \texttt{OK}, tras 500~ms de silencio o a los 15~s, lo que deja
+más tiempo libre para la tarea de pendientes.
 
 \subsection{Funcionamiento continuo}
 
-Desde el 20/11/2026 a las 00:30 la estación funciona sola, alimentada sin
-computadora, midiendo cada 5 minutos y enviando por WiFi (RSSI $-43$~dBm). Con
-estos datos se calcula la disponibilidad: datos recibidos frente a esperados,
-huecos y duplicados.
+Con el firmware actual (módem + WiFi) la estación funciona sola desde el 20/11.
+Hasta las 21:55 el radar estuvo desconectado y todas las lecturas salieron con
+$-1$ y estado \emph{sin respuesta}, marcadas como falla en la microSD, la base
+de datos y la página: una prueba involuntaria de que el estado funciona. Desde
+las 22:00, con el radar conectado, se cuenta la disponibilidad. Como cada
+medición lleva id correlativo, un salto de id indica una medición no publicada
+y un salto de hora sin salto de id, un turno no medido.
 
 \begin{table}[H]
     \centering
     \small
-    \caption{Disponibilidad del período de funcionamiento continuo.}
+    \caption{Primer período de funcionamiento continuo con el radar (datos de la página).}
     \begin{tabular}{lc}
         \toprule
-        Período & \completar{desde 20/11 00:30 hasta ...} \\
-        Datos esperados (1 cada 5 min) & \completar{} \\
-        Datos recibidos en el servidor & \completar{} \\
-        Disponibilidad & \completar{\%} \\
-        Duplicados & \completar{} \\
+        Período & 20/11 22:00 -- 21/11 15:50 (17 h 50 min) \\
+        Turnos esperados (1 cada 5 min) & 215 \\
+        Turnos medidos por la estación (ids 251 a 465, sin saltos) & 215 (100\,\%) \\
+        Lecturas recibidas por la página & 213 (99,1\,\%) \\
+        Lecturas recibidas por el servidor & \completar{falta exportar la tabla} \\
+        Estado de las lecturas & 213 OK, 0 fallas \\
+        Distancia / señal & 0,873--0,874 m / 19--21 dB \\
         \bottomrule
     \end{tabular}
 \end{table}
+
+Las dos lecturas que no llegaron a la página (ids 408 y 409, 21/11 a las 11:05 y
+11:10) sí están en la microSD: el envío a GitHub no tiene cola, porque la
+página es para mirar en tiempo real y el registro completo queda en la placa.
+La distancia varió solo 1~mm en casi 18 horas con el agua quieta. El ensayo de
+7 días sigue en curso.
+
+\subsection{Línea de base: 9 meses de Proyecto~3}
+\label{sec:linea_base}
+
+La estación de Proyecto~3, con el sensor ultrasónico, envió datos al servidor
+desde el 27/08/2025 hasta el 02/06/2026. Se exportó su tabla de la base de
+datos y se calcularon la disponibilidad y los huecos con un script propio
+(\texttt{analisis/disponibilidad.py}): cada registro se asigna a su turno de
+5~min y un turno sin registro cuenta como faltante.
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Disponibilidad de la estación de Proyecto~3.}
+    \begin{tabular}{lr}
+        \toprule
+        Período & 27/08/2025 -- 02/06/2026 (279 días) \\
+        Lecturas esperadas (1 cada 5 min) & 80.324 \\
+        Lecturas recibidas & 70.848 \\
+        Lecturas faltantes & 9.476 ($\approx$ 32,9 días) \\
+        \textbf{Disponibilidad} & \textbf{88,2\,\%} \\
+        Huecos (al menos 1 lectura faltante) & 1.295 \\
+        Registros repetidos en el mismo turno & 1.441 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth]{disp_p3_mensual.pdf}
+    \caption{Disponibilidad por mes de la estación de Proyecto~3. En rojo, los
+    meses bajo la meta de 95\,\%; en tono claro, los meses incompletos.}
+\end{figure}
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Huecos según su duración.}
+    \begin{tabular}{lrrr}
+        \toprule
+        \textbf{Duración del hueco} & \textbf{Huecos} & \textbf{Lecturas
+            faltantes} & \textbf{\% de lo faltante} \\
+        \midrule
+        1 lectura (5--10 min) & 906 & 906 & 9,6\,\% \\
+        hasta 1 h & 356 & 1.026 & 10,8\,\% \\
+        1--6 h & 21 & 604 & 6,4\,\% \\
+        6--24 h & 6 & 765 & 8,1\,\% \\
+        más de 24 h & 6 & 6.175 & \textbf{65,2\,\%} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth]{disp_p3_serie.pdf}
+    \caption{Serie completa de Proyecto~3. En rojo, los huecos de más de 1~h. Los
+    picos hacia arriba son crecidas.}
+\end{figure}
+
+\begin{resultado}{Qué muestra la línea de base}
+\begin{itemize}
+    \item Seis de los once meses alcanzan el 95\,\%. Los meses malos (setiembre,
+        febrero, marzo y mayo) se explican por \textbf{6 caídas de más de un
+        día}, que suman el 65\,\% de lo faltante; la más larga duró 8 días
+        (04 al 12/09/2025). Sin ellas la disponibilidad habría sido del
+        95,5\,\%.
+    \item Los huecos cortos son muchos (906 de una sola lectura) pero pesan
+        poco: menos del 10\,\% de lo faltante.
+    \item Los 1.441 registros repetidos son probables duplicados del reenvío:
+        sin id no se pueden distinguir de un dato legítimo.
+    \item En P3 no quedaba registro de la causa de cada hueco (sensor, red o
+        energía). Por eso ahora cada medición tiene \textbf{id} y
+        \textbf{estado} y queda en la microSD, y la página avisa cuando la
+        estación deja de enviar.
+\end{itemize}
+\end{resultado}
+
+La serie también muestra para qué sirve el sistema: el 16/03/2026 la distancia
+bajó de 6,5 a 3,68~m en menos de una hora, es decir, el agua subió unos 2,8~m.
+En una crecida así, cada lectura perdida es información que no se recupera.
 
 \subsection{Velocidad superficial}
 
@@ -1162,8 +1343,15 @@ hasta conseguir uno.
         Señal de 15--18 dB (el manual pide $>$ 30). & Potencia de emisión
             en el mínimo; se ajusta según el ensayo con agua. \\
         El script del servidor acepta solo dos campos. & id, velocidad,
-            señal y estado van a la microSD; estado calculado en la base de
-            datos. \\
+            señal y estado van a la microSD, la PC y la página; estado
+            calculado en la base de datos. \\
+        Abrir el puerto USB de la placa desde la PC la reinicia; una vez
+            quedó en modo descarga. & Botón RESET; no abrir el puerto durante
+            los ensayos. \\
+        El módem no puede enviar a GitHub (solo HTTP y un servidor). & La
+            página se alimenta por WiFi; el módem queda para el servidor. \\
+        La primera publicación en GitHub dio HTTP 403. & Al token le faltaba
+            el permiso de escritura de contenidos. \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -1213,19 +1401,87 @@ datos, donde el equipo sí tiene acceso:
         \texttt{CAIDA} si pasan más de 15 minutos (3 lecturas) sin datos.
 \end{itemize}
 
-Ambas funcionan y son la base de la web propia.
+Ambas funcionan y sirven para Grafana o cualquier consulta SQL. La página
+propia no las usa: se alimenta directo de la placa, porque la velocidad y la
+señal no llegan a la base de datos.
 
-\subsection{Web propia}
+\subsection{Web propia: página de monitoreo}
+\label{sec:web}
 
-\CURSO\ La web del equipo muestra los históricos, la antigüedad de la última
-lectura, el estado del sensor y una alarma por umbral. Se prueba primero con
-los datos históricos de Proyecto~3 y luego con los del radar.
+\REAL\ La página está publicada en
+\begin{center}\small\url{https://hecvelaz.github.io/Sistema-de-adquisicion-y-monitoreo-de-nivel-P4/}\end{center}
+y se puede abrir desde cualquier PC o celular. Es una página estática (HTML,
+JavaScript y Chart.js~\cite{chartjs}) servida por GitHub Pages~\cite{ghpages};
+no necesita servidor propio ni computadora encendida.
+
+\begin{figure}[H]
+    \centering
+    \resizebox{\textwidth}{!}{\input{diagramas/web_flujo.tex}}
+    \caption{Cadena de datos de la página de monitoreo.}
+\end{figure}
+
+En cada medición, después del envío al servidor, la placa hace un POST por
+HTTPS a la API de GitHub (\texttt{repository\_dispatch}~\cite{ghactions}) con la
+línea completa de \texttt{datos.csv}. Una GitHub Action valida la línea y la
+agrega a \texttt{datos.json}, en una rama aparte que guarda los últimos 30 días
+en un solo commit, para que el repositorio no crezca. La página relee ese
+archivo cada 2 minutos y recalcula el estado cada 30~s.
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Lo pedido en la evaluación y cómo lo muestra la página.}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.6cm}L}
+        \toprule
+        \textbf{Pedido} & \textbf{En la página} \\
+        \midrule
+        Dato actual & Distancia al agua, velocidad superficial y señal (dB) de
+            la última lectura. \\
+        Antigüedad del dato & Hora de la última lectura y tiempo transcurrido. \\
+        Estado de la estación & \textbf{EN LÍNEA} o \textbf{CAÍDA} si pasan
+            más de 15~min (3 lecturas) sin datos. \\
+        Estado del sensor & Si la última lectura no es válida muestra
+            ``falla'' y el motivo: sin respuesta, respuesta inválida o fuera
+            de rango. \\
+        Alarma & Aviso destacado por estación caída, falla del sensor o nivel
+            alto (umbral de distancia configurable). \\
+        Históricos & Gráficos de distancia y velocidad de 24~h, 7 y 30 días;
+            los huecos se dibujan como cortes de la línea. \\
+        Detalle & Tabla de las últimas lecturas con id y estado. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\newcommand{\captura}[2]{%
+    \IfFileExists{figuras/#1}{\includegraphics[width=\linewidth]{#1}}{%
+        \fbox{\parbox[c][3.2cm][c]{0.94\linewidth}{\centering\completar{#2}}}}}
 
 \begin{figure}[!htbp]
     \centering
-    \resizebox{0.85\textwidth}{!}{\input{diagramas/boceto_web.tex}}
-    \caption{Diseño de la web propia (valores ilustrativos).}
+    \begin{subfigure}[t]{0.32\textwidth}\centering
+        \captura{web_valido.png}{captura: dato válido}
+        \caption{Dato válido, estación en línea.}
+    \end{subfigure}\hfill
+    \begin{subfigure}[t]{0.32\textwidth}\centering
+        \captura{web_viejo.png}{captura: estación caída (fin de la UPS)}
+        \caption{Dato viejo: estación caída.}
+    \end{subfigure}\hfill
+    \begin{subfigure}[t]{0.32\textwidth}\centering
+        \captura{web_falla.png}{captura: radar desconectado}
+        \caption{Falla del sensor.}
+    \end{subfigure}
+    \caption{La página en los tres estados pedidos en la evaluación.}
 \end{figure}
+
+\textbf{Seguridad y límites.} La placa se autentica con un \emph{token} de
+GitHub de alcance mínimo: solo este repositorio y solo escritura de contenidos.
+Está únicamente en el archivo de credenciales del firmware, que no se sube al
+repositorio, y vence el 19/01/2027. La página es pública y solo muestra datos:
+no tiene comandos que proteger. El envío a GitHub no tiene cola; si falla, la
+lectura queda en la microSD y en la PC. La API de GitHub admite 60 consultas
+por hora y por IP sin autenticación; si se agotan, la página lee la copia
+pública del archivo, que puede tener unos 5~minutos de retraso. El umbral de
+la alarma por nivel alto se fija cuando se conozca la altura de instalación.
 
 % ======================================================
 % 12. COSTOS
@@ -1278,11 +1534,13 @@ una red existente.
 
 \textbf{Próximos pasos}
 \begin{enumerate}
-    \item Completar los cortes de red y de energía hasta 10 de cada uno.
-    \item Medir el consumo del ESP32 y la autonomía real con la UPS.
+    \item Completar los cortes de red y de energía hasta 10 de cada uno,
+        incluidos WiFi caído con el módem enviando y módem sin señal.
+    \item Medir el consumo del ESP32 y del módem; cerrar el ensayo de
+        autonomía.
     \item Cerrar la disponibilidad de 7 días sin tocar la estación.
-    \item Reintegrar el modo módem con el radar y ensayar el envío por GPRS.
-    \item Terminar la web propia sobre la vista de estado de la base de datos.
+    \item Definir el umbral de alarma por nivel alto de la página.
+    \item Renovar el \emph{token} de GitHub antes del 19/01/2027.
     \item Ensayar la velocidad cuando haya un canal con agua en movimiento.
 \end{enumerate}
 
@@ -1358,6 +1616,15 @@ una red existente.
     Disponible en: \url{https://www.marsriva.com/Products_item_2/157.html}
 \bibitem{grafana} Grafana Labs, ``Grafana Documentation.'' [En línea].
     Disponible en: \url{https://grafana.com/docs/grafana/latest/}
+\bibitem{usrgprs} USR IOT, ``USR-GPRS232-730 User Manual'' y ``USR-GPRS232-730
+    \& 734 AT Commands,'' V1.0.
+\bibitem{ghpages} GitHub, ``GitHub Pages documentation.'' [En línea].
+    Disponible en: \url{https://docs.github.com/en/pages}
+\bibitem{ghactions} GitHub, ``Events that trigger workflows:
+    repository\_dispatch.'' [En línea]. Disponible en:
+    \url{https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows}
+\bibitem{chartjs} Chart.js, ``Chart.js Documentation,'' v4. [En línea].
+    Disponible en: \url{https://www.chartjs.org/docs/latest/}
 \end{thebibliography}
 
 % ======================================================

@@ -1,4 +1,4 @@
-% Diagrama en bloques del sistema (2.o parcial): radar FM02B y dos modos de envío
+% Diagrama en bloques del sistema (2.o parcial): radar FM02B módem GPRS y WiFi
 \begin{tikzpicture}[
     bloque/.style={draw=gray!60!black, fill=white, rounded corners=3pt, align=center,
         font=\small, minimum height=0.95cm, inner sep=4pt},
@@ -33,30 +33,36 @@
 
     % ---------------- Externos ----------------
     \node[ext, minimum width=3.2cm] (radar) at (8.6,0.8) {\textbf{Radar FM02B}\\nivel 80 GHz\\velocidad 24 GHz};
-    \node[opc, minimum width=3.2cm] (dtu) at (8.6,-1.0) {Módem DTU GPRS\\USR-IOT\\{\scriptsize (modo módem)}};
+    \node[ext, minimum width=3.2cm] (dtu) at (8.6,-1.0) {\textbf{Módem GPRS}\\USR-GPRS232-730};
     \draw[dat] (t1.east) -- node[lbl, above] {RS485} node[lbl, below] {Modbus RTU} (radar.west);
-    \draw[dat, dashed] (t2.east) -- node[lbl, above] {RS485} (dtu.west);
+    \draw[dat] (t2.east) -- node[lbl, above] {RS485} (dtu.west);
 
     \node[ext, minimum width=2.6cm] (ups) at (-4.2,4.1) {\textbf{Mini UPS}\\Marsriva KP1 Ultra};
     \draw[pot] (ups.east) -| node[lbl, pos=0.25, above] {5 V (J9 / J4)} (ams.north);
-    \draw[pot] (ups.north) -- ++(0,0.5) -| node[lbl, pos=0.25, above] {12 V (J2) $\to$ J3-1 / J8-1} (radar.north);
-    \draw[pot, dashed] (radar.north) ++(0,0.65) -- ++(1.9,0) |- (dtu.east);
+    \draw[pot] (ups.north) -- ++(0,0.5) -| node[lbl, pos=0.25, above] {12 V (J2) $\to$ J3-1} (radar.north);
+    \draw[pot] (radar.north) ++(0,0.65) -- ++(1.9,0) |- node[lbl, pos=0.25, right] {12 V} (dtu.east);
+
+    % Servidor (camino principal: GPRS)
+    \node[bloque, minimum width=3.0cm] (srv) at (8.6,-4.0) {\textbf{Servidor}\\script PHP + base de datos};
+    \draw[-{Stealth}, thick] (dtu.south) -- node[lbl, right, align=left] {HTTP por GPRS\\(principal)} (srv.north);
+    \node[bloque, minimum width=3.0cm, fill=gray!5] (graf) at (8.9,-5.9) {Grafana\\(grupo de investigación)};
+    \draw[-{Stealth}, thick] (srv.south) -- ++(0,-0.4) -| (graf.north);
 
     % WiFi
     \node[ext, minimum width=2.6cm] (wifi) at (3.6,-4.0) {Router WiFi\\2,4 GHz};
-    \draw[dat] (esp.south) ++(0.4,0) |- node[lbl, pos=0.75, above] {WiFi (antena)} (wifi.west);
+    \draw[dat] (esp.south) ++(0.4,0) |- node[lbl, pos=0.75, above] {WiFi} (wifi.west);
+    \draw[-{Stealth}, thick, dashed] (wifi.east) -- node[lbl, above] {HTTP} node[lbl, below] {(respaldo)} (srv.west);
 
-    % Servidor
-    \node[bloque, minimum width=3.4cm] (srv) at (8.6,-4.0) {\textbf{Servidor}\\script PHP + base de datos};
-    \draw[-{Stealth}, thick] (wifi.east) -- node[lbl, above] {HTTP} (srv.west);
-    \draw[-{Stealth}, thick, dashed] (dtu.south) -- node[lbl, right] {GPRS} (srv.north);
-
-    \node[bloque, minimum width=3.4cm, fill=gray!5] (vis) at (8.6,-5.8) {Grafana / web propia};
-    \draw[-{Stealth}, thick] (srv.south) -- (vis.north);
+    \node[bloque, minimum width=2.5cm, fill=gray!5] (pc) at (1.0,-5.9) {PC del laboratorio\\(UDP, línea completa)};
+    \node[bloque, minimum width=2.7cm] (gh) at (4.9,-5.9) {GitHub: Action +\\rama \texttt{datos}};
+    \node[bloque, minimum width=2.7cm, fill=agua!8, draw=agua!70!black] (web) at (4.9,-7.6) {\textbf{Página de monitoreo}\\(GitHub Pages)};
+    \draw[-{Stealth}, thick] (wifi.250) -- ++(0,-0.55) -| node[lbl, pos=0.75, left] {UDP} (pc.north);
+    \draw[-{Stealth}, thick] (wifi.290) -- ++(0,-0.55) -| node[lbl, pos=0.75, right] {HTTPS} (gh.north);
+    \draw[-{Stealth}, thick] (gh.south) -- (web.north);
 
     % Leyenda
-    \node[anchor=west, font=\scriptsize, align=left] at (-5.4,-5.6) {%
+    \node[anchor=west, font=\scriptsize, align=left] at (-5.4,-8.5) {%
         \tikz\draw[pot] (0,0) -- (0.6,0); alimentación \quad
         \tikz\draw[dat] (0,0) -- (0.6,0); datos \quad
-        \tikz\draw[thick, dashed] (0,0) -- (0.6,0); modo módem};
+        \tikz\draw[thick, dashed] (0,0) -- (0.6,0); respaldo};
 \end{tikzpicture}

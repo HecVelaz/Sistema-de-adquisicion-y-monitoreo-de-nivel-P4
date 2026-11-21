@@ -4,13 +4,13 @@
     nuevo/.style={campo, draw=radar, fill=radar!10},
     nota/.style={font=\scriptsize, text=gray!60!black, align=center}
 ]
-    \node[anchor=west, font=\small\bfseries] at (0,0.9) {Al servidor (sin cambios, WiFi o módem)};
+    \node[anchor=west, font=\small\bfseries] at (0,0.9) {Al servidor (sin cambios; módem GPRS o WiFi)};
     \node[campo, anchor=west] (a1) at (0,0) {d=};
     \node[campo, right=0pt of a1] (a2) {epoch UTC};
     \node[campo, right=0pt of a2] (a3) {distancia (m)};
     \node[nota, right=8pt of a3] {ej.: \texttt{d=1795144800,0.864}\\$-1$ si el radar falla};
 
-    \node[anchor=west, font=\small\bfseries] at (0,-1.6) {En la microSD: \texttt{datos.csv} (nuevo)};
+    \node[anchor=west, font=\small\bfseries] at (0,-1.6) {En la microSD, a la PC y a la página: línea de \texttt{datos.csv} (nuevo)};
     \node[campo, anchor=west] (b1) at (0,-2.5) {epoch};
     \node[nuevo, right=0pt of b1] (b2) {id};
     \node[campo, right=0pt of b2] (b3) {distancia\_m};
