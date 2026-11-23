@@ -14,6 +14,7 @@
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{float}
+\usepackage{etoolbox}
 \usepackage{needspace}
 \usepackage[section]{placeins}
 \usepackage{pdfpages}
@@ -53,6 +54,11 @@
 % Enlace a video (azul)
 \newcommand{\video}[2]{\href{#1}{\textcolor{blue!70!white}{#2}}}
 
+% Índice compacto: menos espacio antes de cada sección
+\makeatletter
+\patchcmd{\l@section}{1.0em}{0.6em}{}{}
+\makeatother
+
 \newcommand{\seccion}[1]{\needspace{10\baselineskip}\section{#1}}
 
 \begin{document}
@@ -91,7 +97,6 @@
     {\large Noviembre de 2026\par}
 \end{titlepage}
 
-\enlargethispage{3\baselineskip}
 {\small\setlength{\parskip}{0pt}\tableofcontents}
 \newpage
 
@@ -106,25 +111,26 @@ radar se probó en un banco de laboratorio con la PCB propia de Proyecto~3, un
 ESP32-S3, un RTC y un módem GPRS.
 
 Para este segundo parcial el sensor ultrasónico se reemplazó por un
-\textbf{radar Luda/POLIVIR FM02B}, que mide la distancia al agua con una antena
+radar Luda/POLIVIR FM02B, que mide la distancia al agua con una antena
 de 80~GHz y la velocidad superficial con otra de 24~GHz. Se escribió
-su driver Modbus RTU, se agregó un \textbf{identificador correlativo} y un
-\textbf{estado} a cada medición y se sincronizó la escritura en la microSD. El
-dato va al servidor por el \textbf{módem GPRS} y, si este falla, por
-\textbf{WiFi}; por WiFi la lectura completa llega además a una
-\textbf{página de monitoreo propia} publicada en GitHub Pages. El radar se montó
-con su kit comercial en un \textbf{banco de laboratorio} que simula la
+su driver Modbus RTU, se agregó un identificador correlativo y un
+estado a cada medición y se sincronizó la escritura en la microSD. El
+dato va al servidor por el módem GPRS y, si este falla, por
+WiFi; por WiFi la lectura completa llega además a una
+página de monitoreo propia publicada en GitHub Pages. El radar se montó
+con su kit comercial en un banco de laboratorio que simula la
 instalación: un perfil en voladizo sobre un balde con agua.
 
 Resultados principales: el radar respondió a la primera (115\,200 baudios,
-dirección 1, sin errores de CRC); su consumo es de \textbf{126~mA a 12~V
-($\approx$1,5~W)}; en el primer corte de red se recuperaron \textbf{7 de 7
-datos, sin pérdidas ni duplicados}, en 1~min 36~s; el módem confirmó el envío
-de prueba en 3,9~s; la UPS sostuvo la estación completa \textbf{2~h~30~min},
-mucho menos que lo estimado, por sus baterías. Entre el 20/11 a las 22:00 y el 21/11 a las 15:50, la
-estación registró \textbf{215 de 215 turnos de 5 minutos}, y la página recibió
-213 lecturas (99,1\,\%). Como línea de base, los 9 meses de datos de
-Proyecto~3 dan una disponibilidad de \textbf{88,2\,\%}, y dos tercios de lo que
+dirección 1, sin errores de CRC); su consumo es de 126~mA a 12~V
+($\approx$1,5~W); en el primer corte de red se recuperaron 7 de 7
+datos, sin pérdidas ni duplicados, en 1~min 36~s; el módem confirmó el envío
+de prueba en 3,9~s; la UPS sostuvo la estación completa 2~h~30~min,
+mucho menos que lo estimado, por sus baterías. Entre el 20/11 a las 22:00 y el
+23/11 a las 15:25 (65~h), la estación midió 775 de 786 turnos de 5 minutos
+(98,6\,\%); los 11 que faltan son la hora en que la UPS quedó agotada durante el
+ensayo de autonomía. La página recibió 770 lecturas, todas válidas. Como línea de base, los 9 meses de datos de
+Proyecto~3 dan una disponibilidad de 88,2\,\%, y dos tercios de lo que
 falta son solo 6 caídas de más de un día.
 
 \section{Abstract}
@@ -132,21 +138,22 @@ falta son solo 6 caídas de más de un día.
 The station was developed to monitor the water level of the Mburicaó stream.
 It stores each reading on a microSD card and sends it to a server. For this
 second partial submission the ultrasonic sensor was replaced by a
-\textbf{Luda/POLIVIR FM02B radar} that measures distance to the water (80~GHz)
+Luda/POLIVIR FM02B radar that measures distance to the water (80~GHz)
 and surface velocity (24~GHz). A Modbus RTU driver was written, a sequential
-\textbf{id} and a \textbf{status} code were added to each reading, and microSD
+id and a status code were added to each reading, and microSD
 writes were synchronized. Readings now reach the server through the
-\textbf{GPRS modem} with \textbf{WiFi} as backup, and the full record is also
-published over WiFi to the team's own \textbf{monitoring page} on GitHub Pages.
-The radar was mounted with its commercial bracket on a \textbf{laboratory test
-bench} over a water bucket. The radar answered at the first attempt, draws
-\textbf{126~mA at 12~V}, and in the first network outage test \textbf{7 of 7
-readings were recovered} with no losses or duplicates, and the UPS powered the
+GPRS modem with WiFi as backup, and the full record is also
+published over WiFi to the team's own monitoring page on GitHub Pages.
+The radar was mounted with its commercial bracket on a laboratory test
+bench over a water bucket. The radar answered at the first attempt, draws
+126~mA at 12~V, and in the first network outage test 7 of 7
+readings were recovered with no losses or duplicates, and the UPS powered the
 whole station for 2~h~30~min, far less than estimated, because of its
-batteries. Between November 20 at
-22:00 and November 21 at 15:50, the station recorded all 215 scheduled readings
-and the monitoring page received 213 (99.1\,\%). The 9 months of data from the
-previous station show \textbf{88.2\,\% availability}, two thirds of the missing
+batteries. Between November 20 at 22:00 and November 23 at 15:25 (65~h), the
+station took 775 of 786 scheduled readings (98.6\,\%); the 11 missing ones are
+the hour the UPS was depleted during the autonomy test. The monitoring page
+received 770 readings, all valid. The 9 months of data from the
+previous station show 88.2\,\% availability, two thirds of the missing
 data being six outages longer than a day.
 
 % ======================================================
@@ -173,9 +180,9 @@ PlatformIO~\cite{pio}.
 \subsection{Sensores de nivel sin contacto}
 Los sensores con salida RS485 toleran ruido eléctrico y cables largos, lo que
 permite separar el sensor de la electrónica~\cite{modbus}. Los
-\textbf{ultrasónicos} miden el tiempo de vuelo del sonido, que depende de la
+ultrasónicos miden el tiempo de vuelo del sonido, que depende de la
 temperatura del aire, y tienen un haz ancho~\cite{ultrasonico}. Los
-\textbf{radares} de onda milimétrica (FMCW de 80~GHz) no dependen de la
+radares de onda milimétrica (FMCW de 80~GHz) no dependen de la
 temperatura ni del viento y tienen un haz angosto; algunos modelos suman una
 segunda antena Doppler para medir la velocidad superficial del
 agua~\cite{fm02b_ficha}.
@@ -210,6 +217,106 @@ con un mecanismo de reenvío ante fallas de comunicación.
 
 \video{https://www.youtube.com/watch?v=a2bRhswCRxE}{Ver el video de resumen del proyecto.}
 
+\textbf{Objetivos específicos.} Hay uno por área, cada uno con un criterio de
+aceptación medible. Los umbrales los propuso el equipo en el primer parcial; el
+resultado de cada uno al cierre de este parcial está en la
+sección~\ref{sec:resultados}.
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Objetivos específicos y criterios de aceptación.}
+    \label{tab:objetivos}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2cm}L>{\raggedright\arraybackslash}p{5.4cm}}
+        \toprule
+        \textbf{Área} & \textbf{Objetivo} & \textbf{Criterio de aceptación} \\
+        \midrule
+        Electrónica & Integrar radar, RTC, microSD y módem en la PCB, con
+            consumo y autonomía conocidos. & Consumo medido por módulo y
+            autonomía medida con la UPS. \\
+        Firmware & Enviar los datos sin perderlos ante cortes
+            (\emph{Store and Forward} con id). & 0 perdidos y 0 duplicados en
+            $\geq$ 10 cortes; disponibilidad $\geq$ 95\,\% en 7 días. \\
+        Montaje & Montar el radar con su kit en un banco de laboratorio. &
+            Antena nivelada y haz libre de obstáculos. \\
+        Interfaz & Web propia con históricos, antigüedad del dato, estado del
+            sensor y alarma. & Página funcionando con dato válido, viejo y en
+            falla. \\
+        Validación & Medir la exactitud del nivel en el banco. & Error
+            $\leq\pm$10~mm frente a cinta métrica. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection{Alcance}
+\label{sec:alcance}
+
+El proyecto cubre la estación completa en un banco de laboratorio que simula la
+instalación: electrónica, firmware, montaje del radar con su kit comercial,
+interfaz y ensayos. La instalación en el arroyo depende del Departamento de
+Mecánica y Energía y del grupo de investigación, así que lo que corresponde a
+esa etapa queda fuera de este proyecto académico:
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Puntos fuera de alcance y su justificación.}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{5.4cm}L}
+        \toprule
+        \textbf{Fuera de alcance} & \textbf{Justificación} \\
+        \midrule
+        Montaje y piloto en el arroyo & Depende del Departamento de Mecánica y
+            Energía; se reemplaza por el banco de laboratorio. \\
+        Cálculo por viento, corrosión en sitio, sellado y prueba de ingreso de
+            agua del conjunto instalado & Son propios de la instalación en el
+            sitio. No se diseña un soporte nuevo: se usa el kit del fabricante,
+            de acero inoxidable (tabla~\ref{tab:mecanica}). \\
+        Calibración en todo el rango del radar (0,1--40 m) & El banco permite
+            hasta unos 1,2~m de altura (huella del haz,
+            sección~\ref{sec:radar}). \\
+        Caudal & El radar mide velocidad superficial; estimar caudal requiere
+            la sección del cauce en el sitio. \\
+        Usuarios y permisos en la web & Los datos son abiertos y la página solo
+            muestra información. \\
+        Web MburicaoCastAI y modelo de predicción & Son del grupo de
+            investigación; aquí solo se citan. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection{Metodología}
+\label{sec:metodologia}
+
+El trabajo se organizó en cinco fases. Cada una termina en un resultado que se
+revisa antes de pasar a la siguiente.
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Fases del trabajo y resultado de cada una.}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.3cm}L>{\raggedright\arraybackslash}p{2.6cm}}
+        \toprule
+        \textbf{Fase} & \textbf{Qué se hace y resultado} & \textbf{Dónde} \\
+        \midrule
+        1. Requisitos y objetivos & A partir de la evaluación del primer
+            parcial: cinco objetivos con criterio de aceptación y línea de
+            base de Proyecto~3 (88,2\,\% de disponibilidad). &
+            Secciones~\ref{sec:objetivos} y~\ref{sec:linea_base} \\
+        2. Selección del sensor & Comparación de tecnologías sin contacto;
+            elección del radar FM02B y lectura de su configuración. &
+            Sección~\ref{sec:alternativas} \\
+        3. Diseño e integración & Driver Modbus, id y estado por medición,
+            microSD segura, módem con respaldo WiFi y página propia, sobre la
+            PCB de Proyecto~3. & Secciones~7, 8 y~\ref{sec:web} \\
+        4. Montaje en banco & Radar con su kit sobre un perfil en voladizo,
+            nivelado sobre un balde con agua. & Sección~9 \\
+        5. Ensayos y análisis & Cada ensayo con instrumento, repeticiones y
+            umbral; resultados comparados con la línea de base y con los
+            criterios de aceptación. & Secciones~10 y~\ref{sec:resultados} \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
 % ======================================================
 % 5. ESQUEMA GENERAL
 % ======================================================
@@ -233,8 +340,8 @@ se alimenta con 5~V por USB-C (J9) o por el jack J4.
 
 La estación usa los dos medios a la vez, cada uno para lo que mejor sabe
 hacer. El dato oficial va al servidor del grupo de investigación por el
-\textbf{módem GPRS}, que no depende de una red WiFi en el sitio; si el módem no
-confirma, se reintenta por \textbf{WiFi}, y si fallan los dos queda en la cola
+módem GPRS, que no depende de una red WiFi en el sitio; si el módem no
+confirma, se reintenta por WiFi, y si fallan los dos queda en la cola
 de la microSD. La lectura completa, con velocidad y señal, sale por WiFi hacia
 la PC del laboratorio y hacia la página de monitoreo, porque el módem solo
 habla HTTP con un único servidor y GitHub exige HTTPS.
@@ -248,7 +355,7 @@ habla HTTP con un único servidor y GitHub exige HTTPS.
         \textbf{Destino} & \textbf{Qué recibe} & \textbf{Por dónde} & \textbf{Si falla} \\
         \midrule
         Servidor (PHP + base de datos) & \texttt{d=<epoch>,}\newline\texttt{<distancia>} &
-            \textbf{Módem GPRS} (modo HTTPD, POST); si no hay \texttt{OK},
+            Módem GPRS (modo HTTPD, POST); si no hay \texttt{OK},
             WiFi (HTTP POST) & Cola en la microSD (\texttt{temp.csv}) \\
         Página de monitoreo & Línea completa de \texttt{datos.csv} & WiFi,
             HTTPS a la API de GitHub & Queda en la microSD y la PC \\
@@ -265,7 +372,7 @@ habla HTTP con un único servidor y GitHub exige HTTPS.
     \caption{Características de cada medio.}
     \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.6cm}LL}
         \toprule
-        & \textbf{Módem GPRS} & \textbf{WiFi} \\
+        & Módem GPRS & WiFi \\
         \midrule
         Hardware & USR-GPRS232-730 en J8 (UART2: GPIO5/6, RTS GPIO7), 12~V
             aparte. & Antena impresa del ESP32-S3 (2,4 GHz). \\
@@ -365,14 +472,14 @@ o se pierde.
             ensucia con sedimento y puede perderse en una crecida. \\
         Radar de nivel 80 GHz & No & No & Exactitud milimétrica, haz
             angosto, no depende de la temperatura. \\
-        \textbf{Radar FM02B} (nivel + velocidad) & No & Sí & Lo anterior
-            más la \textbf{velocidad superficial} (24 GHz). Más caro: USD
+        Radar FM02B (nivel + velocidad) & No & Sí & Lo anterior
+            más la velocidad superficial (24 GHz). Más caro: USD
             690,41 + 64,80 de envío. \\
         \bottomrule
     \end{tabularx}
 \end{table}
 
-Se eligió el \textbf{FM02B} porque mide la distancia sin contacto con el agua y
+Se eligió el FM02B porque mide la distancia sin contacto con el agua y
 entrega la velocidad superficial, un dato adicional para la predicción de
 crecidas.
 
@@ -565,17 +672,17 @@ los pendientes. Lo nuevo se resume en la tabla.
         Control DE/RE & Por software, con retardos. & Por hardware (UART en
             modo RS485 \emph{half-duplex}). \\
         Falla del sensor & Se enviaba $-1$ sin más datos. & Además, un
-            \textbf{estado}: sin respuesta, respuesta inválida o fuera de
+            estado: sin respuesta, respuesta inválida o fuera de
             rango ($<$ 0,1 m). \\
-        Identificación & El id lo ponía el servidor. & \textbf{id
-            correlativo} guardado en la memoria NVS: sobrevive a reinicios. \\
+        Identificación & El id lo ponía el servidor. & id
+            correlativo guardado en la memoria NVS: sobrevive a reinicios. \\
         microSD & Dos tareas escribían sin protección. & \emph{Mutex},
             \texttt{fflush} + \texttt{fsync} y recuperación de la cola tras un
             corte. \\
         Envío & Módem GPRS. & Al servidor por módem GPRS con respaldo
             WiFi; línea completa a la PC (UDP) y a la página (HTTPS). \\
         Hora & Solo el RTC. & NTP al arrancar; sin hora válida no se mide. \\
-        Pruebas & -- & \textbf{Modo banco}: lee el radar cada 2 s, lo
+        Pruebas & -- & Modo banco: lee el radar cada 2 s, lo
             muestra y lo manda a la PC, sin guardar ni enviar al servidor. \\
         \bottomrule
     \end{tabularx}
@@ -607,10 +714,10 @@ el módem y después el WiFi.
 En el primer parcial se propuso enviar al servidor la trama
 \begin{center}\texttt{d=<epoch>,<id>,<distancia>,<velocidad>,<estado>}\end{center}
 Como el script del
-servidor no se puede modificar y acepta solo dos campos, \textbf{al servidor
-sigue yendo la trama de siempre} y el registro completo se guarda en la
+servidor no se puede modificar y acepta solo dos campos, al servidor
+sigue yendo la trama de siempre y el registro completo se guarda en la
 microSD. Como el servidor no recibe el id, los perdidos y duplicados se
-verifican cruzando por la \textbf{hora} los registros de la microSD con los de
+verifican cruzando por la hora los registros de la microSD con los de
 la base de datos: los turnos son fijos, así que a cada turno le corresponde un
 solo registro. El id sí llega a la página, y allí un salto de id marca una
 medición no publicada. La trama nueva queda lista para cuando el administrador habilite
@@ -840,6 +947,7 @@ para alojar la electrónica.
     \centering
     \small
     \caption{Elementos mecánicos.}
+    \label{tab:mecanica}
     \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.4cm}L>{\raggedright\arraybackslash}p{3.3cm}}
         \toprule
         \textbf{Elemento} & \textbf{Función} & \textbf{Material / origen} \\
@@ -861,7 +969,7 @@ para alojar la electrónica.
 \subsection{Montaje del radar en el banco de laboratorio}
 
 El radar se montó con su soporte orientable en el extremo de un
-\textbf{perfil metálico ranurado} en voladizo, fijado a una base de madera
+perfil metálico ranurado en voladizo, fijado a una base de madera
 sobre la mesa. Una varilla roscada une el perfil con el soporte y permite
 ajustar la altura. Debajo se ubica el balde con agua. La PCB y la UPS quedan
 sobre la misma base, como estarían dentro del gabinete.
@@ -970,9 +1078,9 @@ Los videos se reúnen en la
 
 \begin{resultado}{Resultado}
 El radar respondió a la primera con el firmware: 115\,200 baudios, dirección
-1, sin invertir A/B y \textbf{sin errores de CRC}. El registro \texttt{0x0001}
-quedó confirmado como distancia en milímetros: \textbf{0,197~m del radar
-contra 19,7~cm con cinta}, apuntando a una superficie sólida.
+1, sin invertir A/B y sin errores de CRC. El registro \texttt{0x0001}
+quedó confirmado como distancia en milímetros: 0,197~m del radar
+contra 19,7~cm con cinta, apuntando a una superficie sólida.
 \end{resultado}
 
 La señal sobre superficies sólidas fue de 15 a 18~dB, por debajo de los 30~dB
@@ -994,9 +1102,9 @@ corriente.
     \end{minipage}\hfill
     \begin{minipage}[c]{0.46\textwidth}
         \begin{resultado}{Resultado}
-            \textbf{126 mA a 12 V ($\approx$1,5 W)}, frente al intervalo de
-            130--160 mA indicado en la ficha. El radar \textbf{no tiene modo
-            de reposo}: consume siempre lo mismo, mida o no.
+            126 mA a 12 V ($\approx$1,5 W), frente al intervalo de
+            130--160 mA indicado en la ficha. El radar no tiene modo
+            de reposo: consume siempre lo mismo, mida o no.
         \end{resultado}
     \end{minipage}
     \caption[Medición de la corriente del radar con la fuente de laboratorio.]{Medición
@@ -1015,10 +1123,10 @@ Con la estación midiendo cada 1~min, se apagó el router durante unos 7 minutos
 \end{figure}
 
 \begin{resultado}{Resultado del corte n.º 1}
-WiFi caído de 22:15:29 a 22:22:31. Las \textbf{7 mediciones} de ese lapso
-quedaron en la cola y se reenviaron en orden: \textbf{7 recuperadas, 0
-perdidas, 0 duplicadas} (verificado en la base de datos). La cola quedó vacía
-\textbf{1~min 36~s} después de volver la red.
+WiFi caído de 22:15:29 a 22:22:31. Las 7 mediciones de ese lapso
+quedaron en la cola y se reenviaron en orden: 7 recuperadas, 0
+perdidas, 0 duplicadas (verificado en la base de datos). La cola quedó vacía
+1~min 36~s después de volver la red.
 \end{resultado}
 
 En este ensayo la estación enviaba solo por WiFi. Los 0 duplicados son el
@@ -1040,7 +1148,7 @@ trama de prueba desde la PC y después se conectó a J8.
 \begin{resultado}{Resultado}
 Trama de prueba desde la PC: \texttt{d=1795218343,-1.000} $\to$ \texttt{OK}.
 Desde la placa, con el radar: medición guardada en la microSD, enviada a la PC,
-\textbf{\texttt{Respuesta DTU: OK} en 3,9~s} y publicada en la página, en el
+\texttt{Respuesta DTU: OK} en 3,9~s y publicada en la página, en el
 mismo ciclo. Señal celular 25--27 de 31.
 \end{resultado}
 
@@ -1051,7 +1159,8 @@ más tiempo libre para la tarea de pendientes.
 \subsection{Funcionamiento continuo}
 
 Se analizó el funcionamiento de la estación con el firmware que usa módem y
-WiFi, entre el 20/11 a las 22:00 y el 21/11 a las 15:50. Hasta las 21:55 el radar estuvo desconectado y todas las lecturas salieron con
+WiFi, entre el 20/11 a las 22:00 y el 23/11 a las 15:25, con la estación
+funcionando sola en el laboratorio. Hasta las 21:55 el radar estuvo desconectado y todas las lecturas salieron con
 $-1$ y estado \emph{sin respuesta}, marcadas como falla en la microSD, la base
 de datos y la página: una prueba involuntaria de que el estado funciona. Desde
 las 22:00, con el radar conectado, se cuenta la disponibilidad. Como cada
@@ -1061,23 +1170,29 @@ y un salto de hora sin salto de id, un turno no medido.
 \begin{table}[H]
     \centering
     \small
-    \caption{Primer período de funcionamiento continuo con el radar (datos de la página).}
+    \caption{Funcionamiento continuo con el radar (datos de la página).}
     \begin{tabular}{lc}
         \toprule
-        Período & 20/11 22:00 -- 21/11 15:50 (17 h 50 min) \\
-        Turnos esperados (1 cada 5 min) & 215 \\
-        Turnos medidos por la estación (ids 251 a 465, sin saltos) & 215 (100\,\%) \\
-        Lecturas recibidas por la página & 213 (99,1\,\%) \\
-        Estado de las lecturas & 213 OK, 0 fallas \\
-        Distancia / señal & 0,873--0,874 m / 19--21 dB \\
+        Período & 20/11 22:00 -- 23/11 15:25 (65 h 25 min) \\
+        Turnos esperados (1 cada 5 min) & 786 \\
+        Turnos medidos por la estación (ids 251 a 1025) & 775 (98,6\,\%) \\
+        \quad sin contar la UPS agotada (21/11 18:00--18:50) & 775 de 775 (100\,\%) \\
+        Ids repetidos & 0 \\
+        Lecturas recibidas por la página & 770 (98,0\,\%) \\
+        Estado de las lecturas & 770 OK, 0 fallas \\
+        Distancia / señal & 0,873--0,876 m / 19--22 dB \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-Las dos lecturas que no llegaron a la página (ids 408 y 409, 21/11 a las 11:05 y
-11:10) sí están en la microSD: el envío a GitHub no tiene cola, porque la
-página es para mirar en tiempo real y el registro completo queda en la placa.
-La distancia varió solo 1~mm en casi 18 horas con el agua quieta.
+Los 11 turnos sin medición son los del ensayo de autonomía
+(sección~\ref{sec:autonomia}): con la UPS agotada la estación estuvo apagada de
+18:00 a 18:50, y al volver la energía el id siguió sin saltos. Las 5 lecturas
+que no llegaron a la página (ids 408, 409, 486, 981 y 1005) se midieron, porque
+el id avanzó, y quedaron en la microSD: el envío a GitHub no tiene cola, porque
+la página es para mirar en tiempo real y el registro completo queda en la placa.
+La distancia varió solo 3~mm en casi 3 días con el agua quieta. Si no se
+interviene la estación, la prueba de 7 días se completa el 27/11 a las 22:00.
 
 \subsection{Autonomía de la UPS y corte de energía}
 \label{sec:autonomia}
@@ -1090,10 +1205,10 @@ que el id continuara.
 
 \begin{resultado}{Resultado del ensayo de autonomía}
 Inicio: 21/11/2026 15:25. Último dato recibido: 17:55 (id 490); a las 18:00 ya
-no hubo medición. \textbf{Autonomía: 2~h~30~min} (entre 2~h~30 y
+no hubo medición. Autonomía: 2~h~30~min (entre 2~h~30 y
 2~h~35~min). Al volver la energía, la primera medición (18:55) llevó el
-\textbf{id 491}: el correlativo siguió sin saltos ni repeticiones, y la estación
-retomó sola los turnos de 5~min. Fue el \textbf{corte de energía n.º~1}.
+id 491: el correlativo siguió sin saltos ni repeticiones, y la estación
+retomó sola los turnos de 5~min. Fue el corte de energía n.º~1.
 \end{resultado}
 
 \begin{table}[H]
@@ -1117,8 +1232,8 @@ retomó sola los turnos de 5~min. Fue el \textbf{corte de energía n.º~1}.
 
 La autonomía medida es unas 8 veces menor que la estimada. Con un consumo total
 de 3 a 4~W (radar, placa y módem), 2,5~h equivalen a solo 8--10~Wh útiles,
-contra los $\approx$~47~Wh que daría la capacidad declarada. \textbf{El problema
-está en las baterías de la UPS}: entregan mucha menos energía que la declarada
+contra los $\approx$~47~Wh que daría la capacidad declarada. El problema
+está en las baterías de la UPS: entregan mucha menos energía que la declarada
 por el fabricante. Con estas baterías la UPS cubre cortes de hasta unas
 2~horas; para el sitio hace falta reemplazarlas o usar una batería mayor (por
 ejemplo, plomo-ácido de 12~V y 7~Ah, unos 84~Wh). Antes del informe final se
@@ -1171,7 +1286,7 @@ datos y se calcularon la disponibilidad y los huecos con un script propio
         hasta 1 h & 356 & 1.026 & 10,8\,\% \\
         1--6 h & 21 & 604 & 6,4\,\% \\
         6--24 h & 6 & 765 & 8,1\,\% \\
-        más de 24 h & 6 & 6.175 & \textbf{65,2\,\%} \\
+        más de 24 h & 6 & 6.175 & 65,2\,\% \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -1186,8 +1301,8 @@ datos y se calcularon la disponibilidad y los huecos con un script propio
 \begin{resultado}{Qué muestra la línea de base}
 \begin{itemize}
     \item Seis de los once meses alcanzan el 95\,\%. Los meses malos (setiembre,
-        febrero, marzo y mayo) se explican por \textbf{6 caídas de más de un
-        día}, que suman el 65\,\% de lo faltante; la más larga duró 8 días
+        febrero, marzo y mayo) se explican por 6 caídas de más de un
+        día, que suman el 65\,\% de lo faltante; la más larga duró 8 días
         (04 al 12/09/2025). Sin ellas la disponibilidad habría sido del
         95,5\,\%.
     \item Los huecos cortos son muchos (906 de una sola lectura) pero pesan
@@ -1195,8 +1310,8 @@ datos y se calcularon la disponibilidad y los huecos con un script propio
     \item Los 1.441 registros repetidos son probables duplicados del reenvío:
         sin id no se pueden distinguir de un dato legítimo.
     \item En P3 no quedaba registro de la causa de cada hueco (sensor, red o
-        energía). Por eso ahora cada medición tiene \textbf{id} y
-        \textbf{estado} y queda en la microSD, y la página avisa cuando la
+        energía). Por eso ahora cada medición tiene id y
+        estado y queda en la microSD, y la página avisa cuando la
         estación deja de enviar.
 \end{itemize}
 \end{resultado}
@@ -1209,8 +1324,8 @@ En una crecida así, cada lectura perdida es información que no se recupera.
 
 El firmware leyó la velocidad superficial del registro \texttt{0x01F4} y guardó
 el valor en la microSD. Con el agua quieta del banco, la lectura fue de
-0,000~m/s, salvo dos lecturas aisladas de unos $-0{,}17$~m/s el 23/11
-(figura~\ref{fig:web}b). Sin agua en movimiento el canal de velocidad no se
+0,000~m/s, salvo 7 lecturas aisladas de 0,16 a 0,19~m/s (en uno u otro sentido)
+en 65 horas (figura~\ref{fig:web}b). Sin agua en movimiento el canal de velocidad no se
 puede validar; esos picos se revisan cuando se ensaye en un canal.
 
 \subsection{Problemas encontrados}
@@ -1267,9 +1382,9 @@ puede validar; esos picos se revisan cuando se ensaye en un canal.
 \subsection{Interfaces existentes}
 
 Durante Proyecto~3 los datos se visualizaron en un panel de
-\textbf{Grafana}~\cite{grafana}, con nivel, precipitación, estado de
+Grafana~\cite{grafana}, con nivel, precipitación, estado de
 actualización y mapa. El grupo de investigación publica además la web
-\textbf{MburicaoCastAI}, con monitoreo y predicción de crecidas. Ambas son
+MburicaoCastAI, con monitoreo y predicción de crecidas. Ambas son
 trabajos externos a este proyecto académico y aquí solo se citan.
 
 \begin{figure}[!htbp]
@@ -1353,7 +1468,7 @@ archivo cada 2 minutos y recalcula el estado cada 30~s.
         Dato actual & Distancia al agua, velocidad superficial y señal (dB) de
             la última lectura. \\
         Antigüedad del dato & Hora de la última lectura y tiempo transcurrido. \\
-        Estado de la estación & \textbf{EN LÍNEA} o \textbf{CAÍDA} si pasan
+        Estado de la estación & EN LÍNEA o CAÍDA si pasan
             más de 15~min (3 lecturas) sin datos en la página. \\
         Estado del sensor & Si la última lectura no es válida muestra
             ``falla'' y el motivo: sin respuesta, respuesta inválida o fuera

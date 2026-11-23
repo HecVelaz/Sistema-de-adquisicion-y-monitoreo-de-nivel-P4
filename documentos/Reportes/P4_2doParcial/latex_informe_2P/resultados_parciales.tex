@@ -11,6 +11,7 @@
 \providecommand{\estPENDIENTE}{\chipRP{orange!85!black}{PENDIENTE}}
 
 \section{Resultados parciales}
+\label{sec:resultados}
 
 En el primer parcial se fijaron cinco objetivos específicos, uno por área, cada
 uno con un criterio de aceptación medible. La tabla resume el resultado
@@ -38,9 +39,10 @@ obtenido al 23/11/2026 y lo que queda para el informe final.
         $\geq$95\,\% en 7 días. &
         Corte de red n.º~1: 7 de 7 recuperadas, 0 perdidas, 0 duplicadas.
         Corte de energía n.º~1 (fin de la batería): el id siguió sin saltos
-        ni repeticiones. En 17~h~50~min: 215 de 215 turnos medidos
-        (100\,\%), 213 en la página (99,1\,\%). Faltan 9 cortes de red, 9 de
-        energía y completar los 7 días. &
+        ni repeticiones. En 65~h: 775 de 786 turnos medidos (98,6\,\%; los
+        11 que faltan son la UPS agotada), 770 en la página, 0 repetidos.
+        Faltan 9 cortes de red, 9 de energía y completar los 7 días
+        (27/11). &
         \estPARCIAL \\
         \addlinespace
         Montaje &
@@ -71,11 +73,12 @@ obtenido al 23/11/2026 y lo que queda para el informe final.
 
 La estación de Proyecto~3 tuvo una disponibilidad de 88,2\,\% en nueve meses
 y no permitía saber si un hueco se debía al sensor, a la red o a la energía.
-En el primer período continuo con el radar la estación midió todos los turnos
-y, gracias al id correlativo, cada dato faltante en la página se pudo
-localizar en la microSD. El período todavía es corto (menos de un día) para
-compararlo con los nueve meses de Proyecto~3; por eso se completa la prueba
-de 7 días.
+En 65 horas de funcionamiento continuo con el radar la estación midió el
+98,6\,\% de los turnos, y el 100\,\% de los turnos en que tuvo energía; gracias
+al id correlativo, cada dato faltante se pudo explicar: o la estación estaba
+apagada (UPS agotada) o la lectura se midió y no llegó a la página. El período
+todavía es corto para compararlo con los nueve meses de Proyecto~3; por eso se
+completa la prueba de 7 días.
 
 \subsection*{Ensayos reprogramados}
 
@@ -109,6 +112,34 @@ informe final, con los ensayos de la tabla siguiente.
         Consumo y autonomía & Corriente del ESP32 y del módem (media y
             picos al transmitir); repetir la descarga con baterías nuevas o
             una batería mayor. & Se informa \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection*{Cronograma hasta el informe final}
+
+La estación sigue funcionando en el laboratorio. Los ensayos que interrumpen la
+estación (cortes, reprogramar en modo banco, cambiar las baterías) se hacen
+después de cerrar los 7 días continuos, para no mezclar sus efectos.
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Cronograma hasta la entrega del informe final (14/12/2026).}
+    \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.6cm}L@{}}
+        \toprule
+        \textbf{Semana} & \textbf{Actividades} \\
+        \midrule
+        24/11 -- 30/11 & Cerrar la prueba de 7 días sin intervenir la estación
+            (27/11 22:00) y conciliar microSD, base de datos y página. Desde el
+            28/11: ensayo de exactitud sobre agua (4 alturas $\times$ 10
+            lecturas). \\
+        1/12 -- 7/12 & 9 cortes de red (incluidos módem sin señal y WiFi caído
+            con el módem enviando) y 9 de energía, también durante la escritura
+            en la microSD. Consumo del ESP32 y del módem. Cambio de las
+            baterías de la UPS y nuevo ensayo de autonomía. \\
+        8/12 -- 14/12 & Análisis de resultados frente a los criterios de
+            aceptación y redacción del informe final. Entrega: 14/12. \\
         \bottomrule
     \end{tabularx}
 \end{table}
