@@ -1,0 +1,116 @@
+% ======================================================
+% RESULTADOS PARCIALES
+% Insertar con \input{resultados_parciales} después de la sección de Costos
+% (antes de las Referencias). Usa booktabs, tabularx, tikz, xcolor, hyperref.
+% ======================================================
+\providecommand{\completar}[1]{\textcolor{red}{\textbf{[#1]}}}
+\providecommand{\chipRP}[2]{\tikz[baseline=(c.base)]\node[fill=#1, text=white,
+    rounded corners=2pt, inner sep=2.5pt, font=\scriptsize\bfseries\sffamily] (c) {#2};}
+\providecommand{\estCUMPLIDO}{\chipRP{green!45!black}{CUMPLIDO}}
+\providecommand{\estPARCIAL}{\chipRP{blue!65!black}{PARCIAL}}
+\providecommand{\estPENDIENTE}{\chipRP{orange!85!black}{PENDIENTE}}
+
+\section{Resultados parciales}
+
+En el primer parcial se fijaron cinco objetivos específicos, uno por área, cada
+uno con un criterio de aceptación medible. La tabla resume el resultado
+obtenido al 23/11/2026 y lo que queda para el informe final.
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Objetivos específicos: criterio de aceptación y resultado al segundo parcial.}
+    \label{tab:resultados_parciales}
+    \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{1.9cm} >{\raggedright\arraybackslash}p{3.6cm} L c@{}}
+        \toprule
+        \textbf{Área} & \textbf{Criterio de aceptación} & \textbf{Resultado obtenido} & \textbf{Estado} \\
+        \midrule
+        Electrónica &
+        Consumo medido por módulo y autonomía medida con la UPS. &
+        Radar: 126~mA a 12~V ($\approx$1,5~W), sin modo de reposo.
+        Falta medir el ESP32, el módem y la autonomía real. &
+        \estPARCIAL \\
+        \addlinespace
+        Firmware &
+        0 perdidos y 0 duplicados en $\geq$10 cortes; disponibilidad
+        $\geq$95\,\% en 7 días. &
+        Corte de red n.º~1: 7 de 7 recuperadas, 0 perdidas, 0 duplicadas.
+        En 17~h~50~min: 215 de 215 turnos medidos (100\,\%), 213 en la
+        página (99,1\,\%). Faltan 9 cortes de red, los cortes de energía y
+        completar los 7 días. &
+        \estPARCIAL \\
+        \addlinespace
+        Montaje &
+        Antena nivelada y haz libre de obstáculos. &
+        Radar montado con su kit sobre un perfil en voladizo; nivelado con
+        la burbuja en los dos ejes, centrado sobre el balde y a menos de
+        1,2~m del agua. &
+        \estCUMPLIDO \\
+        \addlinespace
+        Interfaz &
+        Web con históricos, antigüedad del dato, estado del sensor y alarma. &
+        Página publicada en GitHub Pages con dato actual, antigüedad,
+        estado EN LÍNEA/CAÍDA, estado del sensor, alarma e históricos de
+        24~h, 7 y 30 días. El estado de falla se observó el 20/11 con el
+        radar desconectado. &
+        \estCUMPLIDO \\
+        \addlinespace
+        Validación &
+        Error $\leq\pm$10~mm frente a cinta métrica. &
+        Un punto de control sobre superficie sólida: 0,197~m del radar
+        contra 19,7~cm con cinta. Falta el ensayo sobre agua. &
+        \estPENDIENTE \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection*{Comparación con la línea de base}
+
+La estación de Proyecto~3 tuvo una disponibilidad de 88,2\,\% en nueve meses
+y no permitía saber si un hueco se debía al sensor, a la red o a la energía.
+En el primer período continuo con el radar la estación midió todos los turnos
+y, gracias al id correlativo, cada dato faltante en la página se pudo
+localizar en la microSD. El período todavía es corto (menos de un día) para
+compararlo con los nueve meses de Proyecto~3; por eso se completa la prueba
+de 7 días.
+
+\subsection*{Pendiente para el informe final}
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Ensayos que faltan y cómo se harán.}
+    \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3cm} L >{\raggedright\arraybackslash}p{2.6cm}@{}}
+        \toprule
+        \textbf{Ensayo} & \textbf{Cómo} & \textbf{Umbral} \\
+        \midrule
+        Exactitud sobre agua & Modo banco, 4 alturas $\times$ 10 lecturas
+            sobre el balde, frente a cinta métrica. & $\leq\pm$10~mm \\
+        Cortes de red & 9 cortes más, incluidos módem sin señal y WiFi caído
+            con el módem enviando. & 0 perdidos, 0 duplicados \\
+        Cortes de energía & 10 cortes, incluso durante la escritura en la
+            microSD y el envío. & 0 perdidos, 0 duplicados \\
+        Disponibilidad & 7 días continuos sin intervenir la estación. &
+            $\geq$95\,\% \\
+        Consumo y autonomía & Corriente del ESP32 y del módem (media y
+            picos al transmitir); descarga completa de la UPS. & Se informa \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection*{Anexos}
+
+Las fotos de los ensayos, de los circuitos, del montaje mecánico, de la
+configuración del radar, de la página de monitoreo y de la base de datos se
+reúnen en una carpeta compartida, ordenadas por tema.
+
+\begin{itemize}
+    \item Fotos (anexo): \completar{enlace de la carpeta}
+    \item Videos de las pruebas:
+        \href{https://youtube.com/playlist?list=PLdK9Oc0zBIqY}{lista de
+        reproducción en YouTube}
+    \item Página de monitoreo:
+        \href{https://hecvelaz.github.io/Sistema-de-adquisicion-y-monitoreo-de-nivel-P4/}{Estación Mburicaó (GitHub Pages)}
+    \item Repositorio del proyecto:
+        \href{https://github.com/HecVelaz/Sistema-de-adquisicion-y-monitoreo-de-nivel-P4}{repositorio en GitHub}
+\end{itemize}
