@@ -59,6 +59,6 @@ Trama al servidor: `d=<epoch>,<valor %.3f>\r\n`; éxito si la respuesta contiene
 - `Software/Firmware_Final/` — firmware de producción; `Software/Firmware_Pruebas/` — pruebas por módulo.
 - `Hardware/V3_Estacion_Nivel/` — KiCad 9 (2 capas), Gerbers en `fabrication_files_G10/`, BOM `Estacion_Nivel_V3.csv`, STEP, planos PDF. `Librerias Kicad/` son zips de terceros.
 - `documentos/Diseño Mecánico/` — SolidWorks (`Caja/`, `sensor/`) + PDFs de planos.
-- `documentos/Reportes/` — informes de P3 (`1f_*`, `2p_*`, `P3_final.pptx`). `documentos/Reportes/P4_1erParcial/` — material del 1.er parcial de P4. `documentos/Reportes/P4_2doParcial/` — 2.º parcial: manuales del radar, fotos, guía de conexión (`Guia_conexion_radar_FM02B.md/.pdf`).
+- `documentos/Reportes/P3_informes/` — informes de P3 (`1f_*`, `2p_*`, `P3_final.pptx`). `documentos/Reportes/P4_1erParcial/` — material del 1.er parcial de P4. `documentos/Reportes/P4_2doParcial/` — 2.º parcial: manuales del radar, fotos, guía de conexión (`Guia_conexion_radar_FM02B.md/.pdf`).
 - `documentos/Evidencias_Pruebas/` — capturas; videos de las pruebas de P3 enlazados a Google Drive.
 - `docs/` — estado, decisiones y pendientes.
