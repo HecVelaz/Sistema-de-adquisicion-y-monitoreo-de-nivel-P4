@@ -2,6 +2,41 @@
 
 Registro por fecha de lo hecho en cada sesión. El estado actual está en `docs/ESTADO.md`; lo que falta, en `docs/PENDIENTES.md`.
 
+## 2026-11-28 — Nota del 2.º parcial, plan hasta la final y datos de la estación
+
+### Hecho
+
+- **Promedio de proceso: 74 %** (todo de PRY, peso 100 %; mínimo 60 %) → **derecho a final**. Presentación final y entrega del informe final: **lunes 14/12/2026**. La captura de la nota (`P4_2doParcial/prom.png`, con nombre y cédula) se agregó al `.gitignore`.
+- **Estructura de la presentación final**: `documentos/Reportes/P4_Final/Estructura_presentacion_final.md` (~16 diapositivas, 15–20 min, reparto, preguntas probables). Anexo A: **ensayo de velocidad** (objeto o flotador entre dos marcas vs. radar).
+- **Lista de pendientes en PDF**: `documentos/Reportes/P4_Final/Pendientes_hasta_14_12.pdf` (fuente `latex_pendientes_final/main.tex`). Del 30/11 al 4/12 está la entrega del robot de Robótica 1 y 2: **ensayos del 7/12 al 10/12**, informe y presentación del 11/12 al 13/12.
+- **Datos de la estación leídos desde casa** (copia de la página, rama `datos`, `datos.json`; la placa está en la FIUNA y no hay forma remota de leer la microSD):
+  - 2176 lecturas del 20/11 19:40 (id 228) al 28/11 12:50 (id 2434). Sin dato del radar: 22, todas del 20/11 19:40–21:50 (radar desconectado). Desde el 20/11 22:00, todas válidas.
+  - **Prueba de 7 días (20/11 22:00 → 27/11 22:00): 1975 de 2016 = 98,0 %** (umbral 95 %). Es una cota inferior: la página no recibe lo que falló al enviarse; la disponibilidad real sale de la microSD y la BD.
+  - 24 huecos de 10–60 min en la página (el mayor, 21/11 17:55–18:55); 31 ids que no llegaron a la página, 0 duplicados.
+  - Distancia: mediana 0,876 m (0,871–0,881). **El 27/11 de 15:05 a 21:35 saltó a ~1,04 m** y volvió: falta saber si alguien movió el balde o el radar.
+  - Señal 15–23 dB (mediana 19), por debajo de 30 dB. Velocidad 0,000 salvo 32 picos aislados de ±0,16–0,22 m/s.
+
+### Ensayo de velocidad (idea del equipo, a hacer el 9/12)
+
+- El haz de velocidad sale a ~55° de la horizontal y toca el agua a ≈ 0,7·H delante del radar: las marcas van alrededor de ese punto y el objeto se mueve en la dirección del haz.
+- Leer desde la PC cada 0,2 s (`leer_radar_pc.py --intervalo 0.2`); `0x01F4` está filtrado, conviene sumar `0x000F` (velocidad superficial, float LE).
+- Flotador casi sumergido, ≥ 10 pasadas, video a 60 fps. Criterio propuesto: ≤ 0,05 m/s o ≤ 10 %. Rango del radar 0,05–20 m/s, ±0,01 m/s.
+
+### Observaciones
+
+- Las sesiones del 23/11 (commits `07f56d4` a `d2ff0f9`, informe del 2.º parcial) no tienen entrada en la bitácora.
+- Sin commitear y fuera de este commit: `Informe_2doParcial_P4.pdf` modificado y `Aguilar_Tullo_Velazquez_P4_23_11_26.pdf` (no son de esta sesión).
+
+### Comandos útiles
+
+```bash
+# Leer los datos que la placa sube a la página (sin tocar la estación)
+gh api "repos/HecVelaz/Sistema-de-adquisicion-y-monitoreo-de-nivel-P4/contents/datos.json?ref=datos" \
+   -H "Accept: application/vnd.github.raw" > datos.json
+# Recompilar la lista de pendientes (desde P4_Final/latex_pendientes_final/)
+pdflatex -output-directory=/tmp main.tex && pdflatex -output-directory=/tmp main.tex && cp /tmp/main.pdf ../Pendientes_hasta_14_12.pdf
+```
+
 ## 2026-11-21 — Verificación del repo, informe del 2.º parcial subido y CLAUDE.md de Software adelgazado
 
 ### Hecho

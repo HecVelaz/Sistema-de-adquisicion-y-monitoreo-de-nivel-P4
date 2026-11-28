@@ -1,68 +1,70 @@
-# Estado del proyecto — 2026-11-21
+# Estado del proyecto — 2026-11-28
 
 Foto del estado actual. Se reescribe al cerrar cada sesión (`/cerrar`); la historia está en `docs/BITACORA.md`.
 
 ## Contexto
 
-- P3 terminado (línea de base). P4 1.er parcial: 46/50; lo más flojo fue validación y objetivos.
-- Informes del 1.er parcial y su fuente LaTeX: `documentos/Reportes/P4_1erParcial/` (incluye `Respuesta_evaluacion_1P_P4.pdf`, con lo prometido para el 2.º parcial). Material del 2.º parcial: `documentos/Reportes/P4_2doParcial/`, con el **informe** `Informe_2doParcial_P4.pdf` (32 págs.; fuente `latex_informe_2P/` y zip para Overleaf).
-- La fecha de entrega registrada (16/11/2026) ya pasó: falta confirmar la nueva.
+- P3 terminado (línea de base). P4 1.er parcial: 46/50. **2.º parcial entregado; promedio de proceso 74 % → derecho a final.**
+- **Final: lunes 14/12/2026** — presentación + informe final (confirmar con los profesores formato, duración, si el informe se entrega ese día y si se permite demo en vivo).
+- **Del 30/11 al 4/12 el equipo está con el robot de Robótica 1 y 2**: los ensayos van del **7/12 al 10/12**; informe y presentación, del 11/12 al 13/12.
+- Plan día por día: `documentos/Reportes/P4_Final/Pendientes_hasta_14_12.pdf`. Estructura de la presentación y ensayo de velocidad: `P4_Final/Estructura_presentacion_final.md`.
+- Informe del 2.º parcial: `documentos/Reportes/P4_2doParcial/Informe_2doParcial_P4.pdf` (fuente `latex_informe_2P/`). Material del 1.er parcial: `P4_1erParcial/`.
+
+## Estación en el banco (FIUNA)
+
+- **Funcionando sola desde el 20/11** con el firmware de producción (5 min). Al 28/11 12:50: id 2434. Dejarla así hasta el 7/12.
+- **Prueba de 7 días (20/11 22:00 → 27/11 22:00): 98,0 % según la página** (1975 de 2016; umbral 95 %). La cifra real sale de la microSD y la BD (copiar `datos.csv` el 7/12).
+- 24 huecos de 10–60 min en la página y 31 ids que no llegaron; 0 duplicados. Falta ver si están en la SD.
+- Distancia 0,871–0,881 m, salvo el **27/11 15:05–21:35 (~1,04 m)**: averiguar si alguien tocó el balde o el radar.
+- Desde casa no se puede leer la microSD; sí la copia de la página (`datos.json` de la rama `datos`, comando en la bitácora del 28/11).
 
 ## Radar FM02B
 
-- Funciona con el firmware en J3 (115200, dirección 1, leídos por Bluetooth). `0x0001` = distancia en mm, confirmado con cinta a una altura (0,197 m contra ~19,7 cm). **Hoy quedó desconectado**: todas las lecturas de la tarde son `-1` / estado 1.
-- Señal 15–18 dB sobre superficies (el manual pide > 30); **todavía no se midió sobre agua**.
-- Velocidad (`0x01F4`) se lee: 0,000 m/s en el banco.
-- **Consumo: 126 mA a 12 V (~1,5 W)**. No tiene modo de reposo.
-- Configuración (Bluetooth): calibración −46 mm, potencia de nivel 7 (mínima), sensibilidad 5. Sin cambios hasta medir con agua.
-- No hay datasheet oficial publicado; los tres PDFs de `P4_2doParcial/` son la referencia.
+- Firmware en J3 (115200, dirección 1). `0x0001` = distancia en mm; velocidad `0x01F4` (filtrada, × 0,001 m/s).
+- **Señal 15–23 dB** (el manual pide > 30). Todavía no se midió la exactitud **sobre agua**.
+- Velocidad: 0,000 en el banco salvo picos aislados de ±0,16–0,22 m/s. **Sin validar**: falta el ensayo con agua en movimiento.
+- Consumo 126 mA a 12 V (~1,5 W), sin modo de reposo.
+- Configuración (Bluetooth): calibración −46 mm, potencia de nivel 7 (mínima), sensibilidad 5.
+- No hay datasheet oficial de la versión exacta; los tres PDFs de `P4_2doParcial/` son la referencia.
 
 ## Placa V3
 
 - Conectores: **J2** jack 12 V (solo radar) · **J9** USB-C o **J4** jack 5 V (ESP32) · **J3** radar (1 +12 V, 2 A, 3 B, 4 GND) · **J8** módem DTU (A/B; el módem toma 12 V aparte).
-- Conectada al USB de la PC, tras cargar firmware a veces queda en modo descarga: **botón RESET**.
-- El esquemático PDF de `Hardware/V3_Estacion_Nivel/planos/` y el BOM `.csv` están **desactualizados**; el `.kicad_pcb` y los `.kicad_sch` son los correctos.
+- Tras cargar firmware a veces queda en modo descarga: **botón RESET**.
+- Esquemático PDF de `Hardware/V3_Estacion_Nivel/planos/` y BOM `.csv` **desactualizados**; el `.kicad_pcb` y los `.kicad_sch` son los correctos.
 - Pila BT1 del DS3231 sin verificar (el NTP corrige la hora al arrancar).
 
-## Comunicación (firmware `Software/Firmware_Final`, commit `938929f`)
+## Comunicación (firmware `Software/Firmware_Final`)
 
 | Destino | Por dónde | Si falla |
 | --- | --- | --- |
 | PHP del servidor (`d=<epoch>,<distancia>`) | **Módem GPRS** (HTTPD) | WiFi; si no, cola en la SD |
-| PC (línea completa, con velocidad) | WiFi, UDP broadcast :5005 (FIUNA no aísla clientes) | solo SD |
+| PC (línea completa, con velocidad) | WiFi, UDP broadcast :5005 | solo SD |
 | Página GitHub Pages (línea completa) | WiFi, HTTPS (`repository_dispatch`) | solo SD y PC |
 | SD `datos.csv` (`epoch,id,distancia,velocidad,señal,estado`) | — | — |
 
-- **Probado en la placa** a las 21:05 (id 241): SD + PC + `Respuesta DTU: OK` (3,9 s) + página. Detalle técnico: `Software/CLAUDE.md`.
-- WiFi: lista `WIFI_REDES` (FIUNA primero, `LabEquiposMedicos` de respaldo). Credenciales, URL, IP de la PC y token: solo en `credenciales.h`.
-- Módem USR-GPRS232-730 configurado por AT: `HTTPD`, POST a `/level/insertarMasi.php`, timeout 10 s, APN `internet.tigo.py`, señal 25–27/31. Parámetros: `Software/Moden/Moden.md`.
-- Página: https://hecvelaz.github.io/Sistema-de-adquisicion-y-monitoreo-de-nivel-P4/ — datos en `datos.json` de la rama `datos` (30 días). **Token de GitHub vence el 2027-01-19**; al vencer la página deja de recibir (lo demás sigue).
-- Receptor en la PC: `python3 Software/receptor_pc/receptor_udp.py` (opcional; nada depende de él). Sin la placa: `leer_radar_pc.py` lee el radar con un adaptador USB–RS485 (para exactitud).
-- Modo banco (`-DMODO_BANCO`): cada 2 s a la PC, sin SD, PHP ni página. Intervalo de producción 5 min.
-- Pendiente de ensayar: corte durante la escritura en la SD, corte de WiFi con el módem enviando.
+- Credenciales, URL, IP de la PC y token: solo en `credenciales.h`. Módem: `Software/Moden/Moden.md`.
+- Página: https://hecvelaz.github.io/Sistema-de-adquisicion-y-monitoreo-de-nivel-P4/ (30 días). **Token de GitHub vence el 2027-01-19.**
+- `leer_radar_pc.py` lee el radar con un adaptador USB–RS485 (exactitud y velocidad; `--intervalo 0.2`). Modo banco (`-DMODO_BANCO`): cada 2 s a la PC.
 
 ## Ensayos
 
-| Ensayo | Resultado | Falta |
+| Ensayo | Resultado | Falta (fecha prevista) |
 | --- | --- | --- |
-| Cortes de red | 1 de ≥ 10: 7/7 recuperados, 0 perdidos, 0 duplicados, 1 min 36 s (solo WiFi, antes del módem) | 9 más, incluido WiFi caído con módem activo |
-| Cortes de energía | — | ≥ 10, incluso durante la escritura en la SD |
-| Exactitud | 1 altura en seco | 4 alturas × 10 lecturas sobre agua |
-| Consumo | Radar 126 mA | ESP32 (medidor USB), módem |
-| Disponibilidad 7 días | — | Empezar después de los cortes |
-| Autonomía | — | Falta la UPS |
+| Disponibilidad 7 días | 98,0 % (página) | Confirmar con SD y BD (7/12) |
+| Exactitud | 1 altura en seco | 4 alturas × 10 lecturas sobre agua (7/12) |
+| Cortes de red | 1 de ≥ 10, 0 perdidos, 0 duplicados | 9 más, incluido WiFi caído con módem activo (8/12) |
+| Cortes de energía | — | ≥ 10, incluso durante la escritura en la SD (8/12) |
+| Consumo | Radar 126 mA | ESP32 y módem (8/12) |
+| Autonomía | — | Baterías nuevas en la UPS (noche del 8/12) |
+| Velocidad | — | Flotador entre dos marcas vs. radar (9/12) |
 
 ## Base de datos
 
-- Columna generada **`estado`** (OK / FALLA_SENSOR / RECUPERADO) y vista **`Masi_estado_estacion`** (EN LINEA / CAIDA, > 15 min sin datos). Sin permiso para disparadores.
-- **Datos que no son del arroyo** en la tabla de la estación: banco desde el 19/11 19:55, `-1` con fecha del año 2000, `-1` de toda la tarde del 20/11 (radar desconectado) y la trama de prueba del módem (20/11 20:45:43). No se borraron: antes hay que saber si la predicción lee esa tabla.
-- Respaldo local de la tabla del 19/11 (fuera del repo).
+- Columna generada `estado` y vista `Masi_estado_estacion` (EN LINEA / CAIDA, > 15 min sin datos).
+- Hay **datos que no son del arroyo** en la tabla (banco desde el 19/11, `-1` del año 2000 y del 20/11, trama de prueba del módem). No se borran hasta saber si la predicción lee esa tabla.
 
 ## Documentación
 
-- Guía de armado: `P4_2doParcial/Guia_conexion_radar_FM02B.md` y `.pdf` (9 págs.), al día: radar, módem en J8, envíos, registros nuevos y fallas.
-- **Plan de ensayos** con procedimientos y tablas para completar: `P4_2doParcial/Plan_de_ensayos.md`.
-- `README.md` raíz: al día con P4 (arquitectura módem + WiFi + página, conectores, pinout, formatos).
-- Manuales y programa del módem en `Software/Moden/`; la carpeta está en `.gitignore` para lo nuevo (`Gm3Cfg.ini` tiene la IP del servidor).
-- Fotos de la bancada en `P4_2doParcial/Fotos/bancada_de_prueba/`. Las capturas para el repo no deben mostrar la IP del servidor (la de Grafana se recortó).
-- En la respuesta a la evaluación se escribió "tenemos acceso al servidor para adaptarlo": no es así (solo a la BD). Explicarlo en el 2.º parcial.
+- Guía de armado: `P4_2doParcial/Guia_conexion_radar_FM02B.md/.pdf`. Plan de ensayos: `P4_2doParcial/Plan_de_ensayos.md` (todavía sin el de velocidad; está en el anexo A de la estructura).
+- Datos privados fuera del repo (en `.gitignore`): planillas de notas, `prom.png`, capturas con datos de terceros.

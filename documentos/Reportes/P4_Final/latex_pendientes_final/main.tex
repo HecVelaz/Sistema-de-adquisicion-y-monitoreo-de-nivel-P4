@@ -1,0 +1,215 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage{lmodern}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+
+\definecolor{rojo}{HTML}{B3261E}
+\definecolor{ambar}{HTML}{B26A00}
+\definecolor{gris}{HTML}{5F6368}
+\definecolor{azul}{HTML}{1A4D8F}
+
+\newcommand{\imp}{\textcolor{rojo}{\textbf{[I]}}}
+\newcommand{\mej}{\textcolor{ambar}{\textbf{[M]}}}
+\newcommand{\opc}{\textcolor{gris}{\textbf{[O]}}}
+
+\setlist[itemize]{label=$\square$, leftmargin=1.6em, itemsep=2pt, topsep=3pt}
+\titleformat{\section}{\large\bfseries\color{azul}}{}{0pt}{}[\vspace{-0.6ex}\rule{\textwidth}{0.4pt}]
+\titlespacing*{\section}{0pt}{10pt}{4pt}
+\titleformat{\subsection}{\normalsize\bfseries}{}{0pt}{}
+\titlespacing*{\subsection}{0pt}{6pt}{2pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small Proyecto 4 --- Estación de nivel del arroyo Mburicaó}
+\rhead{\small Pendientes al 14/12/2026}
+\cfoot{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+{\LARGE\bfseries Lo que falta para el 14 de diciembre}\par
+\vspace{2pt}
+{\large Informe final y presentación --- Proyecto 4, Ingeniería Mecatrónica, FIUNA}\par
+\vspace{2pt}
+{\small Aguilar, Tullo, Velázquez \quad·\quad Actualizado el sábado 28/11/2026 (quedan 16 días; ensayos desde el 7/12)}
+
+\vspace{8pt}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+\textbf{Estado al 28/11} & La estación funciona en el banco desde el 20/11: última lectura hoy a las 12:50.
+Prueba de 7 días (20/11 22:00 $\to$ 27/11 22:00) cerrada: \textbf{98,0\,\%} según la página
+(1975 de 2016), umbral 95\,\%. Promedio de proceso: 74\,\% (derecho a final). \\
+\textbf{Prioridad} & \imp{} imprescindible \quad \mej{} mejora la nota \quad \opc{} si sobra tiempo \\
+\textbf{Regla} & Del 30/11 al 4/12 está la entrega del robot de Robótica 1 y 2: esa semana, solo
+tareas cortas desde casa y la estación sigue midiendo sola. \textbf{Ensayos del lunes 7/12 al jueves
+10/12} (los ensayos interrumpen la estación: primero copiar la microSD). Del 11/12 al 13/12, informe
+y presentación. \\
+\textbf{Reparto} & Del 7/12 al 10/12 trabajar en paralelo: dos ensayan en la FIUNA y uno analiza los
+datos del día y escribe. No dejar todo el informe para el final. \\
+\bottomrule
+\end{tabularx}
+
+% ------------------------------------------------------------------
+\section{Este fin de semana (28--29/11), desde casa}
+
+\begin{itemize}
+  \item \imp{} Preguntar a los profesores: \textbf{formato y duración} de la presentación, si el
+        informe final también se entrega el 14/12, si se puede hacer una demo en vivo (red, proyector,
+        enchufe) y pedir la \textbf{devolución del 2.º parcial} (dónde se perdieron los 26 puntos).
+  \item \imp{} Averiguar qué pasó el \textbf{27/11 de 15:05 a 21:35} (la distancia pasó de 0,881 a
+        $\sim$1,04~m). Si alguien tocó el radar o el soporte, anotarlo en la bitácora.
+  \item \mej{} Agregar a \texttt{leer\_radar\_pc.py} la velocidad superficial sin filtrar
+        (\texttt{0x000F}, float LE) para el ensayo de velocidad. Probarlo con \texttt{-{}-prueba}
+        el 7/12.
+  \item \mej{} Preparar los scripts de análisis: conciliación microSD $\leftrightarrow$ BD
+        $\leftrightarrow$ página, disponibilidad real y gráficos de exactitud. Así, el 7/12 los
+        resultados salen el mismo día.
+\end{itemize}
+
+% ------------------------------------------------------------------
+\section{Semana del robot (30/11--4/12): solo tareas cortas}
+
+\begin{itemize}
+  \item \imp{} Mirar la página una vez por día: que la estación siga enviando. Si se cae, anotar la
+        hora (no ir salvo que sea grave: cada día continuo suma).
+  \item \imp{} Conseguir los materiales del ensayo de velocidad y \textbf{elegir el lugar} (arroyo o
+        canal con corriente $\geq$0,05~m/s): flotadores (botellas al 80\,\%), cinta, estacas o marcas,
+        celular a 60~fps, adaptador USB--RS485, alargue y fuente de 12~V.
+  \item \mej{} Informe final: corregir lo que marque la devolución del 2.º parcial y adelantar las
+        secciones que no dependen de los ensayos (diseño, mecánica, interfaz).
+  \item \mej{} Diapositivas de los bloques 1 a 3 (contexto, diseño, mecánica e interfaz) con la
+        estructura de \texttt{Estructura\_presentacion\_final.md}, repartidas entre los tres.
+  \item \opc{} Sábado 5 y domingo 6/12, si hay energía después de la entrega: terminar esos
+        bloques y la tabla vacía de resultados (ensayo / umbral / resultado / cumple).
+\end{itemize}
+
+% ------------------------------------------------------------------
+\section{Ensayos en la FIUNA (lunes 7/12 -- jueves 10/12)}
+
+\subsection{Lunes 7/12}
+\begin{itemize}
+  \item \imp{} \textbf{Copiar \texttt{datos.csv}} de la microSD justo después de una medición y
+        volver a colocarla. Comprobar que el firmware la vuelve a montar.
+  \item \imp{} Conciliar la microSD, la BD y la página: \textbf{disponibilidad real} de los 7 días y
+        del total continuo (20/11 $\to$ 7/12, $\sim$16 días), perdidos y duplicados, y si los huecos de
+        la página también están en la SD.
+  \item \imp{} \textbf{Exactitud sobre agua}: 4 alturas $\times$ 10 lecturas contra cinta
+        (umbral $\leq\pm$10~mm). Antes, nivelar con burbuja y anotar roll/pitch.
+  \item \mej{} Señal: hoy está entre 15 y 23~dB ($<$30~dB). Probar a subir la potencia de nivel
+        (7 $\to$ 3 $\to$ 0) y anotar el efecto.
+  \item \opc{} Si el error es constante, corregir la calibración (\texttt{0x07D8}, hoy
+        $-$46~mm) y anotar ambos valores.
+\end{itemize}
+
+\subsection{Martes 8/12}
+\begin{itemize}
+  \item \imp{} \textbf{9 cortes de red} más (hasta 10): cortos ($<$1~min) y largos ($>$10~min),
+        WiFi sin internet, módem sin señal y WiFi caído con el módem enviando. Contar
+        perdidos y duplicados (objetivo: 0 y 0).
+  \item \imp{} \textbf{9 cortes de energía} más, incluso durante la escritura en la microSD y el envío:
+        al volver, el id sigue y no se pierden pendientes. Se pueden intercalar con los de red
+        mientras se espera el ciclo de 5~min.
+  \item \imp{} \textbf{Consumo} del ESP32 y del módem: media y picos al transmitir.
+  \item \mej{} A la noche: baterías nuevas en la UPS y \textbf{ensayo de autonomía} hasta la mañana
+        (el radar consume $\sim$1,5~W continuos, sin modo de reposo).
+\end{itemize}
+
+\subsection{Miércoles 9/12}
+\begin{itemize}
+  \item \imp{} \textbf{Ensayo de velocidad} (anexo A de la estructura): flotador entre dos marcas
+        separadas 2--5~m, con las marcas alrededor del punto del haz ($\approx$0,7·H delante del
+        radar). Al menos 10 pasadas, a 2 o 3 velocidades. Radar leído desde la PC cada 0,2~s.
+        Criterio: $\leq$0,05~m/s o $\leq$10\,\%.
+  \item \opc{} Variante de banco: placa arrastrada con un hilo, para separar el error del radar del
+        error del método del flotador.
+  \item \imp{} \textbf{Fotos y video} del montaje, del banco, de la página en funcionamiento y del
+        ensayo de velocidad.
+\end{itemize}
+
+\subsection{Jueves 10/12}
+\begin{itemize}
+  \item \imp{} Margen para \textbf{repetir los ensayos} que fallaron o quedaron incompletos.
+  \item \imp{} Grabar el \textbf{video de respaldo de la demo} (radar $\to$ trama $\to$ página).
+  \item \mej{} Página: fijar el \textbf{umbral de alarma} (\texttt{ALARMA\_DISTANCIA\_M}) y
+        probarlo acercando el agua. Verificar los estados CAÍDA y SIN RESPUESTA.
+  \item \imp{} Dejar la estación funcionando sola hasta el 14/12, para la demo.
+\end{itemize}
+
+% ------------------------------------------------------------------
+\section{Informe y presentación (viernes 11/12 -- domingo 13/12)}
+
+\subsection{Análisis (lo del día, del 7/12 al 10/12; cierre el 11/12)}
+\begin{itemize}
+  \item \imp{} Tabla final \textbf{ensayo / umbral / resultado / cumple}, para todos los criterios
+        de aceptación.
+  \item \imp{} Gráficos: radar vs.\ cinta (con la recta 1:1), radar vs.\ flotador, serie temporal de
+        los días continuos con los huecos marcados, y señal.
+  \item \mej{} Comparar con la línea de base de P3 (9 meses): disponibilidad, huecos y exactitud del
+        ultrasónico frente al radar.
+\end{itemize}
+
+\subsection{Informe final (11--12/12)}
+\begin{itemize}
+  \item \imp{} Pasar \emph{Resultados parciales} a \textbf{Resultados}, con todos los ensayos, y
+        agregar la sección de \textbf{velocidad}.
+  \item \imp{} \textbf{Conclusiones}: objetivos cumplidos con números, problemas y cómo se
+        resolvieron, y trabajo futuro (caudal, predicción, script nuevo del servidor).
+  \item \imp{} Actualizar el resumen, el abstract, el cronograma real y los anexos.
+  \item \imp{} Revisión cruzada (cada uno lee lo que escribió otro) y entrega en el formato pedido.
+  \item \opc{} Regenerar desde KiCad el esquemático PDF y el BOM; corregir el ERC (PWR\_FLAG) y
+        el DRC.
+  \item \opc{} Disponibilidad de la línea de base de P3 por SQL (esperados vs.\ recibidos por mes).
+\end{itemize}
+
+\subsection{Presentación (11--13/12)}
+\begin{itemize}
+  \item \imp{} Terminar las diapositivas ($\sim$16, de 15 a 20~min): sumar el bloque 4,
+        \textbf{ensayos y resultados}, y el cierre.
+  \item \imp{} Diapositivas de respaldo: pinout, registros Modbus, esquemático, BOM y costo,
+        cronograma.
+  \item \imp{} \textbf{Ensayar al menos 2 veces} con cronómetro (sábado 12 y domingo 13), con los
+        tres presentando.
+  \item \imp{} Preparar las respuestas a las preguntas probables: por qué el radar, cortes de red y
+        de energía, autonomía, nivelación, validación de la velocidad, por qué no se calcula el
+        caudal.
+  \item \imp{} Tener el video de respaldo de la demo en un pendrive y en Drive.
+\end{itemize}
+
+\subsection{Cierre del repositorio (13/12)}
+\begin{itemize}
+  \item \mej{} Actualizar \texttt{README.md}, \texttt{docs/ESTADO.md}, \texttt{PENDIENTES.md} y la
+        bitácora. Subir el informe y la presentación finales.
+  \item \imp{} Antes del commit: que no haya credenciales en el diff y que no se suban
+        \texttt{prom.png}, las planillas de notas ni los videos.
+\end{itemize}
+
+% ------------------------------------------------------------------
+\section{Lunes 14/12: presentación final}
+\begin{itemize}
+  \item \imp{} Llevar la notebook cargada, el adaptador USB--RS485, el pendrive con el video y las
+        diapositivas en PDF.
+  \item \imp{} Comprobar antes de entrar que la estación envía y que la página muestra la última
+        lectura.
+\end{itemize}
+
+% ------------------------------------------------------------------
+\section{Después del 14/12 (no bloquea la entrega)}
+\begin{itemize}
+  \item \opc{} Renovar el token de GitHub de la página \textbf{antes del 19/01/2027}.
+  \item \opc{} Decidir con el administrador qué se hace con los datos de prueba en la BD y pedir
+        el script nuevo para la trama con velocidad.
+  \item \opc{} Pedir al vendedor la hoja de datos de la versión exacta del radar (V25).
+\end{itemize}
+
+\end{document}
